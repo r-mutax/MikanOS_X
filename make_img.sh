@@ -1,8 +1,13 @@
-# スクリプトのディレクトリを保持
-self_dir=$(cd $(dirname $0); pwd)
-rm ./bin/BOOTX64.EFI
+bin_dir=$HOME/workspace/MikanOS_X/bin
+echo $bin_dir
 
-# ブートローダのビルド
+# kernel build
+pushd ./Kernel
+clang++ -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c main.cpp
+ld.lld --entry KernelMain -z norelro --image-base 0x100000 --static -o $bin_dir/kernel.elf main.o
+popd
+
+# boot loader build
 pushd $HOME/edk2
 ./edksetup.sh
 build
@@ -10,9 +15,8 @@ popd
 
 cp $HOME/edk2/Build/MikanXLoaderX64/DEBUG_CLANG38/X64/Loader.efi ./bin/BOOTX64.EFI
 
-# ブートローダの起動テスト
-cd ./bin
-
+# test boot
+pushd ./bin
 rm disk.img
 
 qemu-img create -f raw disk.img 200M

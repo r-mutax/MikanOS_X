@@ -2,10 +2,12 @@
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/PrintLib.h>
+#include  <Library/MemoryAllocationLib.h>
 #include <Protocol/LoadedImage.h>
 #include <Protocol/SimpleFileSystem.h>
 #include <Protocol/DiskIo2.h>
 #include <Protocol/BlockIo.h>
+#include <Guid/FileInfo.h>
 
 struct MemoryMap {
     UINTN buffer_size;
@@ -113,6 +115,7 @@ EFI_STATUS EFIAPI UefiMain(
     
     Print(L"Hello World!\n");
 
+    // メモリマップの読み込み
     CHAR8 memmap_buf[4096 * 4];
     struct MemoryMap memmap = {
         sizeof(memmap_buf),
@@ -132,6 +135,48 @@ EFI_STATUS EFIAPI UefiMain(
     memmap_file->Close(memmap_file);
 
     Print(L"All done\n");
+
+    // Kernelファイルの読み込みを行う
+    EFI_FILE_PROTOCOL* kernel_file;
+    root_dir->Open(root_dir, &kernel_file, L"\\Kernel.elf", EFI_FILE_MODE_READ, 0);
+
+    UINTN file_info_size = sizeof(EFI_FILE_INFO) + sizeof(CHAR16) * 12;
+    UINT8 file_info_buffer[file_info_size];
+    kernel_file->GetInfo(kernel_file, &gEfiFileInfoGuid, &file_info_size, &file_info_buffer);
+
+    EFI_FILE_INFO* file_info = (EFI_FILE_INFO*)file_info_buffer;
+    UINTN kernel_file_size = file_info->FileSize;
+
+    EFI_PHYSICAL_ADDRESS kernel_base_addr = 0x100000;
+    gBS->AllocatePages(AllocateAddress, EfiLoaderData, (kernel_file_size + 0xfff) / 0x1000, &kernel_base_addr);
+    kernel_file->Read(kernel_file, &kernel_file_size, (VOID*) kernel_base_addr);
+    Print(L"Kerenel : 0x%0lx (%lu bytes)\n", kernel_base_addr, kernel_file_size);
+
+    // ブートローダを停止する。
+    EFI_STATUS status;
+    status = gBS->ExitBootServices(image_handle, memmap.map_key);
+    if(EFI_ERROR(status)){
+        status = GetMemoryMap(&memmap);
+        if(EFI_ERROR(status)){
+            Print(L"faile to get memory map: %r\n", status);
+            while(1);
+        }
+        status = gBS->ExitBootServices(image_handle, memmap.map_key);
+        if(EFI_ERROR(status)){
+            Print(L"could not exit boot service: %r\n", status);
+            while(1);
+        }
+    }
+
+    // Kernelを起動する。
+    UINT64 entry_addr = *(UINT64*)(kernel_base_addr + 24);
+
+    typedef void EntryPointType(void);
+    EntryPointType* entry_point = (EntryPointType*)entry_addr;
+    entry_point();
+
+    Print(L"Error : Kernel cant load.\n");
+
 
     while(1);
     return EFI_SUCCESS;
