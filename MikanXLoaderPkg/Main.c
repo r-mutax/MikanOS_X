@@ -18,6 +18,16 @@ struct MemoryMap {
     UINT32 descriptor_version;
 };
 
+// local function
+EFI_STATUS GetMemoryMap(struct MemoryMap* map);
+const CHAR16* GetMemoryTypeUnicode(EFI_MEMORY_TYPE type);
+EFI_STATUS SaveMemoryMap(struct MemoryMap* map, EFI_FILE_PROTOCOL* file);
+EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL** root);
+EFI_STATUS OpenGOP(EFI_HANDLE image_handle, EFI_GRAPHICS_OUTPUT_PROTOCOL** gop);
+void Halt();
+const CHAR16* GetPixelFormatUnicode(EFI_GRAPHICS_PIXEL_FORMAT fmt);
+
+
 EFI_STATUS GetMemoryMap(struct MemoryMap* map){
     if(map->buffer == NULL){
         return EFI_BUFFER_TOO_SMALL;
@@ -142,6 +152,10 @@ EFI_STATUS OpenGOP(EFI_HANDLE image_handle, EFI_GRAPHICS_OUTPUT_PROTOCOL** gop){
     return EFI_SUCCESS;
 }
 
+void Halt(){
+    while(1) __asm__("hlt");
+}
+
 const CHAR16* GetPixelFormatUnicode(EFI_GRAPHICS_PIXEL_FORMAT fmt){
     switch(fmt){
         case PixelRedGreenBlueReserved8BitPerColor:
@@ -189,6 +203,7 @@ EFI_STATUS EFIAPI UefiMain(
     // ブートローダでピクセルを塗りつぶす
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
     OpenGOP(image_handle, &gop);
+
     // Kernelファイルの読み込みを行う
     EFI_FILE_PROTOCOL* kernel_file;
     root_dir->Open(root_dir, &kernel_file, L"\\Kernel.elf", EFI_FILE_MODE_READ, 0);
@@ -201,7 +216,12 @@ EFI_STATUS EFIAPI UefiMain(
     UINTN kernel_file_size = file_info->FileSize;
 
     EFI_PHYSICAL_ADDRESS kernel_base_addr = 0x100000;
-    gBS->AllocatePages(AllocateAddress, EfiLoaderData, (kernel_file_size + 0xfff) / 0x1000, &kernel_base_addr);
+    EFI_STATUS status = gBS->AllocatePages(AllocateAddress, EfiLoaderData, (kernel_file_size + 0xfff) / 0x1000, &kernel_base_addr);
+    if(EFI_ERROR(status)){
+        Print(L"failed to allocate pages: %r", status);
+        Halt();
+    }
+    
     kernel_file->Read(kernel_file, &kernel_file_size, (VOID*) kernel_base_addr);
     Print(L"Kerenel : 0x%0lx (%lu bytes)\n", kernel_base_addr, kernel_file_size);
 
@@ -212,12 +232,12 @@ EFI_STATUS EFIAPI UefiMain(
         status = GetMemoryMap(&memmap);
         if(EFI_ERROR(status)){
             Print(L"faile to get memory map: %r\n", status);
-            while(1);
+            Halt();
         }
         status = gBS->ExitBootServices(image_handle, memmap.map_key);
         if(EFI_ERROR(status)){
             Print(L"could not exit boot service: %r\n", status);
-            while(1);
+            Halt();
         }
     }
 
