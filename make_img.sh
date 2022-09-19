@@ -1,9 +1,9 @@
 bin_dir=$HOME/workspace/MikanOS_X/bin
-echo $bin_dir
 
 # kernel build
 pushd ./Kernel
-clang++ -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c main.cpp
+source $HOME/osbook/devenv/buildenv.sh
+clang++ $CPPFLAGS -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone -fno-exceptions -fno-rtti -std=c++17 -c main.cpp
 ld.lld --entry KernelMain -z norelro --image-base 0x100000 --static -o $bin_dir/kernel.elf main.o
 popd
 
@@ -25,7 +25,7 @@ mkdir -p mnt
 sudo mount -o loop disk.img mnt
 sudo mkdir -p mnt/EFI/BOOT
 sudo cp BOOTX64.EFI mnt/EFI/BOOT/BOOTX64.EFI
-sudo cp $HOME/workspace/MikanOS_X/Kernel/kernel.elf  mnt/kernel.elf
+sudo cp $bin_dir/kernel.elf  mnt/kernel.elf
 sudo umount mnt
 
 qemu-system-x86_64 -drive if=pflash,file=$HOME/osbook/devenv/OVMF_CODE.fd -drive if=pflash,file=$HOME/osbook/devenv/OVMF_VARS.fd -hda disk.img -monitor stdio

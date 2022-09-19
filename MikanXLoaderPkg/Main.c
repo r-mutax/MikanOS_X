@@ -189,21 +189,6 @@ EFI_STATUS EFIAPI UefiMain(
     // ブートローダでピクセルを塗りつぶす
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
     OpenGOP(image_handle, &gop);
-    Print(L"Resolutino : %ux%u, Pixel Format: %s, %u pixels/line\n",
-        gop->Mode->Info->HorizontalResolution,
-        gop->Mode->Info->VerticalResolution,
-        GetPixelFormatUnicode(gop->Mode->Info->PixelFormat),
-        gop->Mode->Info->PixelsPerScanLine);
-    Print(L"Frame Buffer: 0x%0lx - 0x%0lx, Size: %lu bytes\n",
-        gop->Mode->FrameBufferBase,
-        gop->Mode->FrameBufferBase + gop->Mode->FrameBufferSize,
-        gop->Mode->FrameBufferSize);
-    
-    UINT8* fram_buffer = (UINT8*)gop->Mode->FrameBufferBase;
-    for(UINTN i = 0; i < gop->Mode->FrameBufferSize; ++i){
-        fram_buffer[i] = 255;
-    }
-
     // Kernelファイルの読み込みを行う
     EFI_FILE_PROTOCOL* kernel_file;
     root_dir->Open(root_dir, &kernel_file, L"\\Kernel.elf", EFI_FILE_MODE_READ, 0);
@@ -239,9 +224,9 @@ EFI_STATUS EFIAPI UefiMain(
     // Kernelを起動する。
     UINT64 entry_addr = *(UINT64*)(kernel_base_addr + 24);
 
-    typedef void EntryPointType(void);
+    typedef void EntryPointType(UINT64, UINT64);
     EntryPointType* entry_point = (EntryPointType*)entry_addr;
-    entry_point();
+    entry_point(gop->Mode->FrameBufferBase, gop->Mode->FrameBufferSize);
 
     Print(L"Error : Kernel cant load.\n");
 
