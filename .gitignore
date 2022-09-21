@@ -2,3 +2,5 @@ bin/*
 Kernel/main.o
 Kernel/font.o
 Kernel/graphics.o
+tools/hankaku.o
+tools/hankaku.bin
