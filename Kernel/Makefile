@@ -1,6 +1,6 @@
 TARGET = kernel.elf
 TARGET_DIR = ~/workspace/MikanOS_X/bin
-OBJS = main.o graphics.o font.o newlib_support.o
+OBJS = main.o graphics.o font.o newlib_support.o console.o
 DEPENDS = $(join $(dir $(OBJS)), $(addprefix .,$(notdir $(OBJS:.o=.d))))
 
 CFLAGS 		+= -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone
