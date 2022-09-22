@@ -1,6 +1,5 @@
 bin/*
-Kernel/main.o
-Kernel/font.o
-Kernel/graphics.o
+Kernel/*.o
+Kernel/*.d
 tools/hankaku.o
 tools/hankaku.bin
