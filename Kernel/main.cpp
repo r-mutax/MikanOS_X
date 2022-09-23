@@ -7,6 +7,36 @@
 #include "font.hpp"
 #include "console.hpp"
 
+const int kMouseCursorWidth = 15;
+const int kMouseCursorHeight = 24;
+const char mouse_cursor_shape[kMouseCursorHeight][kMouseCursorWidth + 1] = {
+   //123456789ABCDEF 
+    "@              ",
+    "@@             ",
+    "@.@            ",
+    "@..@           ",
+    "@...@          ",
+    "@....@         ",
+    "@.....@        ",
+    "@......@       ",
+    "@.......@      ",
+    "@........@     ",
+    "@.........@    ",
+    "@..........@   ",
+    "@...........@  ",
+    "@............@ ",
+    "@......@@@@@@@@",
+    "@......@       ",
+    "@....@@.@      ",
+    "@...@ @.@      ",
+    "@..@   @.@     ",
+    "@.@    @.@     ",
+    "@@      @.@    ",
+    "@       @.@    ",
+    "         @.@   ",
+    "         @@@   "
+};
+
 void* operator new(size_t size, void* buf) {
   return buf;
 }
@@ -55,8 +85,14 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
         }
     }
 
-    for(int i = 0; i < 27; ++i){
-        printk("line %d\n", i);
+    for(int dy = 0; dy < kMouseCursorHeight; ++dy){
+        for(int dx = 0; dx < kMouseCursorWidth; ++dx){
+            if(mouse_cursor_shape[dy][dx] == '@'){
+                pixel_writer->Write(200 + dx, 100 + dy, {0, 0, 0});
+            } else if(mouse_cursor_shape[dy][dx] == '.'){
+                pixel_writer->Write(200 + dx, 100 + dy, {255, 255, 255});
+            }
+        }
     }
 
     while(1) __asm__("hlt");
