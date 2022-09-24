@@ -1,5 +1,10 @@
 {
     "files.associations": {
-        "elf.hpp": "c"
+        "elf.hpp": "c",
+        "type_traits": "cpp",
+        "array": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp"
     }
 }
