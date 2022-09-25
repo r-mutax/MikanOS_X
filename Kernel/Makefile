@@ -1,11 +1,27 @@
 TARGET = kernel.elf
 TARGET_DIR = ~/workspace/MikanOS_X/bin
-OBJS = main.o graphics.o font.o newlib_support.o console.o \
-	   pci.o logger.o \
-	   usb/memory.o usb/device.o usb/xhci/ring.o usb/xhci/trb.o usb/xhci/xhci.o \
-       usb/xhci/port.o usb/xhci/device.o usb/xhci/devmgr.o usb/xhci/registers.o \
-       usb/classdriver/base.o usb/classdriver/hid.o usb/classdriver/keyboard.o \
-       usb/classdriver/mouse.o usb/classdriver/cdc.o
+OBJS = 	main.o \
+		graphics.o \
+		font.o \
+		newlib_support.o \
+		console.o \
+		pci.o \
+		asmfunc.o \
+		logger.o \
+		libcxx_support.o \
+		usb/memory.o \
+		usb/device.o \
+		usb/xhci/ring.o \
+		usb/xhci/trb.o \
+		usb/xhci/xhci.o \
+        usb/xhci/port.o \
+		usb/xhci/device.o \
+		usb/xhci/devmgr.o \
+		usb/xhci/registers.o \
+        usb/classdriver/base.o \
+		usb/classdriver/hid.o \
+		usb/classdriver/keyboard.o \
+        usb/classdriver/mouse.o
 DEPENDS = $(join $(dir $(OBJS)), $(addprefix .,$(notdir $(OBJS:.o=.d))))
 
 CPPFLAGS += -I.
@@ -26,7 +42,7 @@ clean:
 	rm -rf usb/xhci/.*.d
 
 $(TARGET): $(OBJS) Makefile
-	ld.lld $(LDFLAGS) -o $(TARGET_DIR)/kernel.elf $(OBJS) ~/workspace/MikanOS_X/resource/hankaku.o -lc
+	ld.lld $(LDFLAGS) -o $(TARGET_DIR)/kernel.elf $(OBJS) ~/workspace/MikanOS_X/resource/hankaku.o -lc -lc++
 
 %.o:%.cpp Makefile
 	clang++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
@@ -43,6 +59,9 @@ $(TARGET): $(OBJS) Makefile
 	clang $(CPPFLAGS) $(CFLAGS) -MM $< > $@
 	$(eval OBJ = $(<:.c=.o))
 	sed --in-place 's|$(notdir $(OBJ))|$(OBJ)|' $@
+
+%.o: %.asm Makefile
+	nasm -f elf64 -o $@ $<
 
 .%.d: %.bin
 	touch $@

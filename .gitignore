@@ -1,5 +1,11 @@
 bin/*
 Kernel/*.o
 Kernel/*.d
+Kernel/usb/*.o
+Kernel/usb/*.d
+Kernel/usb/classdriver/*.o
+Kernel/usb/classdriver/*.d
+Kernel/usb/xhci/*.o
+Kernel/usb/xhci/*.d
 tools/hankaku.o
 tools/hankaku.bin

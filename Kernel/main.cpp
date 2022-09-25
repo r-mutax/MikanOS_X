@@ -6,6 +6,7 @@
 #include "graphics.hpp"
 #include "font.hpp"
 #include "console.hpp"
+#include "pci.hpp"
 
 const PixelColor kDesktopBGColor{45, 118, 237};
 const PixelColor kDesktopFGColor{255, 255, 255};
@@ -40,13 +41,16 @@ const char mouse_cursor_shape[kMouseCursorHeight][kMouseCursorWidth + 1] = {
     "         @@@   "
 };
 
-void* operator new(size_t size, void* buf) {
-  return buf;
-}
+// void* operator new(size_t size, void* buf) {
+//   return buf;
+// }
 
 void operator delete(void* obj) noexcept {
 }
 
+extern "C" void __cxa_pure_virtual() {
+  while (1) __asm__("hlt");
+}
 
 char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 PixelWriter* pixel_writer;
@@ -126,6 +130,20 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
 
     console = new(console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
     printk("Welcome to MikanOS_X\n");
+
+    // PCIデバイスを列挙する
+    auto err = pci::ScanAllBus();
+    printk("ScanAllBus:: %s\n", err.Name());
+
+    for(int i = 0; i < pci::num_device; ++i){
+        const auto& dev = pci::devices[i];
+        auto vendor_id = pci::ReadVendorId(dev.bus, dev.device, dev.function);
+        auto class_code = pci::ReadClassCode(dev.bus, dev.device, dev.function);
+
+        printk("%d.%d.%d: vend %04x, class %08x, head %02x\n",
+                dev.bus, dev.device, dev.function,
+                vendor_id, class_code, dev.header_type);
+    }
 
     while(1) __asm__("hlt");
 }
