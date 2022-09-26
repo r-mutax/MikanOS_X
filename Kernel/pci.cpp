@@ -112,6 +112,40 @@ namespace pci {
         return (ReadData() >> 16) & 0xff;
     }
 
+    uint32_t ReadConfReg(const Device& dev, uint8_t reg_addr) {
+        WriteAddress(MakeAddress(dev.bus, dev.device, dev.function, reg_addr));
+        return ReadData();
+    }
+
+    void WriteConfReg(const Device& dev, uint8_t reg_addr, uint32_t value) {
+        WriteAddress(MakeAddress(dev.bus, dev.device, dev.function, reg_addr));
+        WriteData(value);
+    }
+
+    WithError<uint64_t> ReadBar(Device& device, unsigned int bar_index) {
+        if (bar_index >= 6) {
+            // BaseAddressRegister(BAR)は、0 ~ 5まである
+            return {0, MAKE_ERROR(Error::kIndexOutOfRange)};
+        }
+
+        const auto addr = CalcBarAddress(bar_index);
+        const auto bar = ReadConfReg(device, addr);
+
+        if((bar & 4u) == 0) {
+            return {bar, MAKE_ERROR(Error::kSuccess)};
+        }
+
+        if (bar_index >= 5) {
+            return {0, MAKE_ERROR(Error::kIndexOutOfRange)};
+        }
+
+        const auto bar_upper = ReadConfReg(device, addr + 4);
+        return {
+            bar | (static_cast<uint64_t>(bar_upper) << 32),
+            MAKE_ERROR(Error::kSuccess)
+        };
+    }
+
     ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t function) {
 
         WriteAddress(MakeAddress(bus, device, function, 0x08));

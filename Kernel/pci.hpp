@@ -35,7 +35,7 @@ namespace pci
 
         // base, sub, インタフェースが等しいか？
         bool Match(uint8_t b, uint8_t s, uint8_t i){
-            return (Match(b, s) & i) == interface;
+            return Match(b, s) && i == interface;
         }
     };
 
@@ -55,6 +55,7 @@ namespace pci
     uint16_t ReadDeviceId(uint8_t bus, uint8_t device, uint8_t function);
     uint8_t  ReadHeaderType(uint8_t bus, uint8_t device, uint8_t function);
     ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t function);
+    WithError<uint64_t> ReadBar(const Device& dev, unsigned int offset);
 
     inline uint16_t ReadVendorId(const Device& dev){
         return ReadVendorId(dev.bus, dev.device, dev.function);

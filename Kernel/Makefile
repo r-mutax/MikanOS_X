@@ -8,6 +8,7 @@ OBJS = 	main.o \
 		pci.o \
 		asmfunc.o \
 		logger.o \
+		mouse.o \
 		libcxx_support.o \
 		usb/memory.o \
 		usb/device.o \

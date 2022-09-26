@@ -27,4 +27,10 @@ sudo cp BOOTX64.EFI mnt/EFI/BOOT/BOOTX64.EFI
 sudo cp $bin_dir/kernel.elf  mnt/kernel.elf
 sudo umount mnt
 
-qemu-system-x86_64 -drive if=pflash,file=$HOME/osbook/devenv/OVMF_CODE.fd -drive if=pflash,file=$HOME/osbook/devenv/OVMF_VARS.fd -hda disk.img -monitor stdio
+qemu-system-x86_64 \
+    -drive if=pflash,file=$HOME/osbook/devenv/OVMF_CODE.fd \
+    -drive if=pflash,file=$HOME/osbook/devenv/OVMF_VARS.fd \
+    -hda disk.img \
+    -device nec-usb-xhci,id=xhci \
+    -device usb-mouse -device usb-kbd \
+    -monitor stdio
