@@ -33,3 +33,4 @@ void WriteString(PixelWriter& writer, int x, int y ,const char* s, const PixelCo
         WriteAscii(writer, x + 8 * i, y, s[i], color);
     }
 }
+

@@ -7,16 +7,18 @@
 
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
+#include "mouse.hpp"
 #include "font.hpp"
 #include "console.hpp"
 #include "pci.hpp"
 #include "logger.hpp"
-#include "mouse.hpp"
-#include "usb/device.hpp"
 #include "usb/memory.hpp"
+#include "usb/device.hpp"
 #include "usb/classdriver/mouse.hpp"
 #include "usb/xhci/xhci.hpp"
 #include "usb/xhci/trb.hpp"
+#include "interrupt.hpp"
+#include "asmfunc.h"
 
 const PixelColor kDesktopBGColor{45, 118, 237};
 const PixelColor kDesktopFGColor{255, 255, 255};
@@ -59,7 +61,7 @@ void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
     mouse_cursor->MoveRelative({displacement_x, displacement_y});
 }
 
-void SwitchEhci2XHci(const pci::Device& xhc_dev) {
+void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
     bool intel_ehc_exist = false;
     for(int i = 0; i < pci::num_device; ++i) {
         if(pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x20u)
@@ -74,8 +76,22 @@ void SwitchEhci2XHci(const pci::Device& xhc_dev) {
     uint32_t superspeed_ports = pci::ReadConfReg(xhc_dev, 0xdc);    // USB3PRM
     pci::WriteConfReg(xhc_dev, 0xd8, superspeed_ports);             // USB3_PSSEN
     uint32_t ehci2xhci_ports = pci::ReadConfReg(xhc_dev, 0xd4);     // XUSB2PRM
-    pci::WriteConfReg(xhc_dev, 0xd0, ehci2xhci_ports);              // XUCB2PR
-    Log(kDebug, "SwitchEhci2Xhci: SS = %02x, xHCI = %02x\n", superspeed_ports, ehci2xhci_ports);
+    pci::WriteConfReg(xhc_dev, 0xd0, ehci2xhci_ports);              // XUSB2PR
+    Log(kDebug, "SwitchEhci2Xhci: SS = %02, xHCI = %02x\n",
+        superspeed_ports, ehci2xhci_ports);
+}
+
+usb::xhci::Controller* xhc;
+
+__attribute__((interrupt))
+void IntHandlerXHCI(InterruptFrame* frame) {
+    while(xhc->PrimaryEventRing()->HasFront()){
+        if(auto err = ProcessEvent(*xhc)){
+            Log(kError, "Error while ProcessEvent : %s at %s:%d\n",
+                err.Name(), err.File(), err.Line());
+        }
+    }
+    NotifyEndOfInterrupt();
 }
 
 extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
@@ -91,43 +107,40 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
             break;
     }
 
-    for (int x = 0; x < frame_buffer_config.horizontal_resolution; ++x){
-        for (int y = 0; y < frame_buffer_config.vertical_resolution; ++y){
-            pixel_writer->Write(x, y, {255, 255, 255});
-        }
-    }
-
     const int kFrameWidth = frame_buffer_config.horizontal_resolution;
-    const int kFrameHight = frame_buffer_config.vertical_resolution;
+    const int kFrameHeight = frame_buffer_config.vertical_resolution;
 
     // 背景の描画
     FillRectangle(*pixel_writer,
                     {0, 0},
-                    {kFrameWidth, kFrameHight - 50},
+                    {kFrameWidth, kFrameHeight - 50},
                     kDesktopBGColor);
 
     // タスクバーの描画
     FillRectangle(*pixel_writer,
-                    {0, kFrameHight - 50},
+                    {0, kFrameHeight - 50},
                     {kFrameWidth, 50},
                     {1, 8, 17});
 
     // スタートボタンのあたり？
     FillRectangle(*pixel_writer,
-                    {0, kFrameHight - 50},
+                    {0, kFrameHeight - 50},
                     {kFrameWidth / 5, 50},
                     {80, 80, 80});
 
     // スタートボタンの枠？
-    FillRectangle(*pixel_writer,
-                    {10, kFrameHight - 40},
+    DrawRectangle(*pixel_writer,
+                    {10, kFrameHeight - 40},
                     {30, 30},
                     {160, 160, 160});
 
     // マウスカーソルの描画
 
-    console = new(console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
+    console = new(console_buf) Console{
+      *pixel_writer, kDesktopFGColor, kDesktopBGColor
+      };
     printk("Welcome to MikanOS_X\n");
+    SetLogLevel(kWarn);
 
     mouse_cursor = new(mouse_cursor) MouseCursor {
         pixel_writer, kDesktopBGColor, {300, 200}
@@ -135,11 +148,11 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
 
     // PCIデバイスを列挙する
     auto err = pci::ScanAllBus();
-    printk("ScanAllBus:: %s\n", err.Name());
+    Log(kDebug, "ScanAllBus: %s\n", err.Name());
 
     for(int i = 0; i < pci::num_device; ++i){
         const auto& dev = pci::devices[i];
-        auto vendor_id = pci::ReadVendorId(dev.bus, dev.device, dev.function);
+        auto vendor_id = pci::ReadVendorId(dev);
         auto class_code = pci::ReadClassCode(dev.bus, dev.device, dev.function);
 
         printk("%d.%d.%d: vend %04x, classcode [bs]%02x [sb]%02x [if]%02x, head %02x\n",
@@ -151,8 +164,8 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
     pci::Device* xhc_dev = nullptr;
     for(int i = 0; i < pci::num_device; ++i){
         if(pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x30u)){
-            printk("%[bs]%02x [sb]%02x [if]%02x\n", pci::devices[i].class_code.base, pci::devices[i].class_code.sub, pci::devices[i].class_code.interface);
             xhc_dev = &pci::devices[i];
+
             if(0x8086 == pci::ReadVendorId(*xhc_dev)) {
                 Log(kInfo, "xHC device found\n");
                 break;
@@ -161,8 +174,25 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
     }
 
     if(xhc_dev){
-        Log(kInfo, "xHC has been found: %d.%d.%d\n", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
+        Log(kInfo, "xHC has been found: %d.%d.%d\n",
+         xhc_dev->bus, xhc_dev->device, xhc_dev->function);
     }
+
+    // Interrupt Daescripter TableにIntHandlerXHCI()を登録する
+    const uint16_t cs = GetCS();
+    SetIDTEntry(idt[InterruptVector::kXHCI],MakeIDTAttr(DescriptorType::kInterruptGate, 0),
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
+
+    LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
+
+    // BDP(Bootstrap Processor)の番号を読み取る
+    const uint8_t bsp_local_apic_id =
+        *reinterpret_cast<const uint32_t*>(0xfee00020) >> 24;
+
+    pci::ConfigureMSIFixedDestination(
+        *xhc_dev, bsp_local_apic_id,
+        pci::MSITriggerMode::kLevel, pci::MSIDeliveryMode::kFixed,
+        InterruptVector::kXHCI, 0);
 
     // xhcのデバイスのMMIO(メモリマップドIO)のアドレスを探す
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
@@ -174,19 +204,21 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
     usb::xhci::Controller xhc{xhc_mmio_base};
 
     if (0x8086 == pci::ReadVendorId(*xhc_dev)){
-        SwitchEhci2XHci(*xhc_dev);
+        SwitchEhci2Xhci(*xhc_dev);
     }
     {
         auto err = xhc.Initialize();
-        Log(kInfo, "xhc.Initialize: %s\n", err.Name());
+        Log(kDebug, "xhc.Initialize: %s\n", err.Name());
     }
     Log(kInfo, "xHC starting\n");
     xhc.Run();
 
+    ::xhc = &xhc;
+    __asm__("sti");
 
     usb::HIDMouseDriver::default_observer = MouseObserver;
 
-    for(int i = 0; i <= xhc.MaxPorts(); ++i) {
+    for(int i = 1; i <= xhc.MaxPorts(); ++i) {
         auto port = xhc.PortAt(i);
         Log(kDebug, "Port %d: IsConnected = %d\n", i, port.IsConnected());
 
@@ -199,13 +231,13 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
         }
     }
 
-    // マウスのポーリング処理
-    while(1) {
-        if (auto err = ProcessEvent(xhc)) {
-            Log(kError, "Error while ProcessEvent: %s at %s:%d\n",
-            err.Name(), err.File(), err.Line());
-        }
-    }
+    // // マウスのポーリング処理
+    // while(1) {
+    //     if (auto err = ProcessEvent(xhc)) {
+    //         Log(kError, "Error while ProcessEvent: %s at %s:%d\n",
+    //         err.Name(), err.File(), err.Line());
+    //     }
+    // }
 
     while(1) __asm__("hlt");
 }

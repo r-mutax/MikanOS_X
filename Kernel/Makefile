@@ -10,6 +10,7 @@ OBJS = 	main.o \
 		logger.o \
 		mouse.o \
 		libcxx_support.o \
+		interrupt.o \
 		usb/memory.o \
 		usb/device.o \
 		usb/xhci/ring.o \
