@@ -19,6 +19,7 @@
 #include "usb/xhci/trb.hpp"
 #include "interrupt.hpp"
 #include "asmfunc.h"
+#include "queue.hpp"
 
 const PixelColor kDesktopBGColor{45, 118, 237};
 const PixelColor kDesktopFGColor{255, 255, 255};
@@ -83,14 +84,18 @@ void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
 
 usb::xhci::Controller* xhc;
 
+struct Message {
+    enum Type {
+        kInterruptXHCI,
+    } type;
+};
+
+ArrayQueue<Message>* main_queue;
+
 __attribute__((interrupt))
 void IntHandlerXHCI(InterruptFrame* frame) {
-    while(xhc->PrimaryEventRing()->HasFront()){
-        if(auto err = ProcessEvent(*xhc)){
-            Log(kError, "Error while ProcessEvent : %s at %s:%d\n",
-                err.Name(), err.File(), err.Line());
-        }
-    }
+
+    main_queue->Push(Message{Message::kInterruptXHCI});
     NotifyEndOfInterrupt();
 }
 
@@ -145,6 +150,10 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
     mouse_cursor = new(mouse_cursor) MouseCursor {
         pixel_writer, kDesktopBGColor, {300, 200}
     };
+
+    std::array<Message, 32> main_queue_data;
+    ArrayQueue<Message> main_queue{main_queue_data};
+    ::main_queue = &main_queue;
 
     // PCIデバイスを列挙する
     auto err = pci::ScanAllBus();
@@ -231,13 +240,43 @@ extern "C" void KernelMain(const FrameBufferConfig& frame_buffer_config){
         }
     }
 
-    // // マウスのポーリング処理
-    // while(1) {
-    //     if (auto err = ProcessEvent(xhc)) {
-    //         Log(kError, "Error while ProcessEvent: %s at %s:%d\n",
-    //         err.Name(), err.File(), err.Line());
-    //     }
-    // }
+    // 割り込みで受け取ったメッセージを処理する
+    while (true){
+
+        // 今からメッセージキューからメッセージを取り出す。
+        // その間に割り込みが起きてメッセージが追加されると困るので、
+        // cli命令を実行して割り込み許可フラグをゼロにする。
+        __asm__("cli");
+        if(main_queue.Count() == 0){
+            // メッセージキューがからの場合は、hlt命令実行して省電力モードにする
+            // 省電力モードでは、割り込みが起きるまでCPUが止まる？
+            // その際に、次の割り込みが起こらなくなると困るので、
+            // sti命令で割り込み許可フラグを立てておく。
+            __asm__("sti\n\thlt");
+            continue;
+        }
+
+        Message msg = main_queue.Front();
+        main_queue.Pop();
+        __asm__("sti");
+        // メッセージの取得が完了したらsti命令で割り込み許可フラグを戻す。
+
+        switch(msg.type){
+            case Message::kInterruptXHCI:
+                while(xhc.PrimaryEventRing()->HasFront()){
+                    if(auto err = ProcessEvent(xhc)){
+                        Log(kError, "Error while ProcessEvent: %s at %s:%d\n",
+                        err.Name(), err.File(), err.Line());
+                    }
+                }
+                break;            
+            default:
+                Log(kError, "Unknown message type: %d\n", msg.type);
+                break;
+        }
+
+
+    }
 
     while(1) __asm__("hlt");
 }
