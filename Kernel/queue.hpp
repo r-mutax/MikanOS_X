@@ -28,14 +28,17 @@ ArrayQueue<T>::ArrayQueue(T* buf, size_t size)
 
 template <typename T>
 Error ArrayQueue<T>::Push(const T& value){
-    if(count == capacity_){
+    if(count_ == capacity_){
         return MAKE_ERROR(Error::kFull);
     }
 
     data_[write_pos_] = value;
     ++count_;
     ++write_pos_;
-    write_pos_ %= capacity_;
+
+    if(write_pos_ == capacity_){
+        write_pos_ = 0;
+    }
     return MAKE_ERROR(Error::kSuccess);
 }
 
@@ -46,7 +49,10 @@ Error ArrayQueue<T>::Pop(){
     }
     --count_;
     ++read_pos_;
-    read_pos %= count_;
+    
+    if(read_pos_ == capacity_){
+        read_pos_ = 0;
+    }
     return MAKE_ERROR(Error::kSuccess);
 }
 
