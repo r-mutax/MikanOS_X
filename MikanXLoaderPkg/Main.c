@@ -10,16 +10,8 @@
 #include <Protocol/BlockIo.h>
 #include <Guid/FileInfo.h>
 #include "frame_buffer_config.hpp"
+#include "memory_map.hpp"
 #include "elf.hpp"
-
-struct MemoryMap {
-    UINTN buffer_size;
-    VOID* buffer;
-    UINTN map_size;
-    UINTN map_key;
-    UINTN descriptor_size;
-    UINT32 descriptor_version;
-};
 
 // local function
 EFI_STATUS GetMemoryMap(struct MemoryMap* map);
@@ -68,13 +60,17 @@ const CHAR16* GetMemoryTypeUnicode(EFI_MEMORY_TYPE type){
 }
 
 EFI_STATUS SaveMemoryMap(struct MemoryMap* map, EFI_FILE_PROTOCOL* file){
+    EFI_STATUS status;
     CHAR8 buf[256];
     UINTN len;
 
     CHAR8* header = 
         "Index, Type, Type(name), PhisicalStart, NumberOfPages, Attribute\n";
     len = AsciiStrLen(header);
-    file->Write(file, &len, header);
+    status = file->Write(file, &len, header);
+    if (EFI_ERROR(status)) {
+        return status;
+    }
 
     Print(L"map->buffer = %08lx, map->map_size = %08lx\n",
         map->buffer, map->map_size);
@@ -92,30 +88,41 @@ EFI_STATUS SaveMemoryMap(struct MemoryMap* map, EFI_FILE_PROTOCOL* file){
             i, desc->Type, GetMemoryTypeUnicode(desc->Type),
             desc->PhysicalStart, desc->NumberOfPages,
             desc->Attribute & 0xffffflu);
-        file->Write(file, &len, buf);
+        status = file->Write(file, &len, buf);
+        if (EFI_ERROR(status)){
+            return status;
+        }
     }
 
     return EFI_SUCCESS;
 }
 
 EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL** root){
+    EFI_STATUS status;
     EFI_LOADED_IMAGE_PROTOCOL* loaded_image;
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* fs;
 
-    gBS->OpenProtocol(
+    status = gBS->OpenProtocol(
         image_handle,
         &gEfiLoadedImageProtocolGuid,
         (VOID**)&loaded_image,
         image_handle,
         NULL,
         EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
-    gBS->OpenProtocol(
+    if (EFI_ERROR(status)) {
+        return status;
+    }
+
+    status = gBS->OpenProtocol(
         loaded_image->DeviceHandle,
         &gEfiSimpleFileSystemProtocolGuid,
         (VOID**)&fs,
         image_handle,
         NULL,
         EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+    if (EFI_ERROR(status)) {
+        return status;
+    }
     
     fs->OpenVolume(fs, root);
 
@@ -356,9 +363,9 @@ EFI_STATUS EFIAPI UefiMain(
 
 
     UINT64 entry_addr = *(UINT64*)(kernel_first_addr + 24);
-    typedef void EntryPointType(const struct FrameBufferConfig*);
+    typedef void EntryPointType(const struct FrameBufferConfig*, const struct MemoryMap*);
     EntryPointType* entry_point = (EntryPointType*)entry_addr;
-    entry_point(&config);
+    entry_point(&config, &memmap);
 
     Print(L"Error : Kernel cant load.\n");
 
