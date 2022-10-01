@@ -13,6 +13,7 @@ OBJS = 	main.o \
 		interrupt.o \
 		segment.o \
 		paging.o \
+		memory_manager.o \
 		usb/memory.o \
 		usb/device.o \
 		usb/xhci/ring.o \
