@@ -14,6 +14,7 @@ OBJS = 	main.o \
 		segment.o \
 		paging.o \
 		memory_manager.o \
+		window.o \
 		usb/memory.o \
 		usb/device.o \
 		usb/xhci/ring.o \
