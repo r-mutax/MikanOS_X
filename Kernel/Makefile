@@ -17,6 +17,7 @@ OBJS = 	main.o \
 		window.o \
 		layer.o \
 		timer.o \
+		frame_buffer.o \
 		usb/memory.o \
 		usb/device.o \
 		usb/xhci/ring.o \
