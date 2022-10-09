@@ -15,6 +15,7 @@ OBJS = 	main.o \
 		paging.o \
 		memory_manager.o \
 		window.o \
+		layer.o \
 		usb/memory.o \
 		usb/device.o \
 		usb/xhci/ring.o \
@@ -48,7 +49,7 @@ clean:
 	rm -rf usb/xhci/.*.d
 
 $(TARGET): $(OBJS) Makefile
-	ld.lld $(LDFLAGS) -o $(TARGET_DIR)/kernel.elf $(OBJS) ~/workspace/MikanOS_X/resource/hankaku.o -lc -lc++
+	ld.lld $(LDFLAGS) -o $(TARGET_DIR)/kernel.elf $(OBJS) ~/workspace/MikanOS_X/resource/hankaku.o -lc -lc++ -lc++abi
 
 %.o:%.cpp Makefile
 	clang++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
