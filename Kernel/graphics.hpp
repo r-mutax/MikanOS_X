@@ -7,7 +7,7 @@ struct PixelColor {
 };
 
 inline bool operator==(const PixelColor& lhs, const PixelColor& rhs) {
-    return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == lhs.b;
+    return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b;
 }
 
 inline bool operator!=(const PixelColor& lhs, const PixelColor& rhs) {
@@ -74,3 +74,8 @@ void DrawRectangle(PixelWriter& writer, const Vector2D<int>& pos,
 
 void FillRectangle(PixelWriter& writer, const Vector2D<int>& pos,
                    const Vector2D<int>& size, const PixelColor& c);
+
+const PixelColor kDesktopBGColor{45, 118, 237};
+const PixelColor kDesktopFGColor{255, 255, 255};
+
+void DrawDesktop(PixelWriter& writer);

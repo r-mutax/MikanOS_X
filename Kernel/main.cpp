@@ -7,7 +7,6 @@
 
 #include "frame_buffer_config.hpp"
 #include "memory_map.hpp"
-#include "memory_manager.hpp"
 #include "graphics.hpp"
 #include "mouse.hpp"
 #include "font.hpp"
@@ -24,10 +23,9 @@
 #include "queue.hpp"
 #include "segment.hpp"
 #include "paging.hpp"
-
-const PixelColor kDesktopBGColor{45, 118, 237};
-const PixelColor kDesktopFGColor{255, 255, 255};
-
+#include "memory_manager.hpp"
+#include "window.hpp"
+#include "layer.hpp"
 
 // void* operator new(size_t size, void* buf) {
 //   return buf;
@@ -46,13 +44,13 @@ PixelWriter* pixel_writer;
 char console_buf[sizeof(Console)];
 Console* console;
 
-int printk(const char* fmt, ...){
+int printk(const char* format, ...) {
     va_list ap;
     int result;
     char s[1024];
 
-    va_start(ap, fmt);
-    result = vsprintf(s, fmt, ap);
+  va_start(ap, format);
+  result = vsprintf(s, format, ap);
     va_end(ap);
 
     console->PutString(s);
@@ -62,11 +60,11 @@ int printk(const char* fmt, ...){
 char memory_manager_buf[sizeof(BitmapMemoryManager)];
 BitmapMemoryManager* memory_manager;
 
-char mouse_cursor_buf[sizeof(MouseCursor)];
-MouseCursor* mouse_cursor;
+unsigned int mouse_layer_id;
 
 void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
-    mouse_cursor->MoveRelative({displacement_x, displacement_y});
+  layer_manager->MoveRelative(mouse_layer_id, {displacement_x, displacement_y});
+    layer_manager->Draw();
 }
 
 void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
@@ -78,8 +76,9 @@ void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
             break;
         }
     }
-
-    if(!intel_ehc_exist) return;
+  if (!intel_ehc_exist) {
+    return;
+  }
 
     uint32_t superspeed_ports = pci::ReadConfReg(xhc_dev, 0xdc);    // USB3PRM
     pci::WriteConfReg(xhc_dev, 0xd8, superspeed_ports);             // USB3_PSSEN
@@ -108,6 +107,8 @@ void IntHandlerXHCI(InterruptFrame* frame) {
 
 alignas(16) uint8_t kernel_main_stack[1024 * 1024];
 
+
+
 extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_ref,
                                     const MemoryMap& memory_map_ref){
 
@@ -126,46 +127,20 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
             break;
     }
 
-    const int kFrameWidth = frame_buffer_config.horizontal_resolution;
-    const int kFrameHeight = frame_buffer_config.vertical_resolution;
-
-    // 背景の描画
-    FillRectangle(*pixel_writer,
-                    {0, 0},
-                    {kFrameWidth, kFrameHeight - 50},
-                    kDesktopBGColor);
-
-    // タスクバーの描画
-    FillRectangle(*pixel_writer,
-                    {0, kFrameHeight - 50},
-                    {kFrameWidth, 50},
-                    {1, 8, 17});
-
-    // スタートボタンのあたり？
-    FillRectangle(*pixel_writer,
-                    {0, kFrameHeight - 50},
-                    {kFrameWidth / 5, 50},
-                    {80, 80, 80});
-
-    // スタートボタンの枠？
-    DrawRectangle(*pixel_writer,
-                    {10, kFrameHeight - 40},
-                    {30, 30},
-                    {160, 160, 160});
-
-    // マウスカーソルの描画
+    DrawDesktop(*pixel_writer);
 
     console = new(console_buf) Console{
-      *pixel_writer, kDesktopFGColor, kDesktopBGColor
-      };
+        kDesktopFGColor, kDesktopBGColor
+    };
+    console->SetWriter(pixel_writer);
     printk("Welcome to MikanOS_X\n");
     SetLogLevel(kWarn);
 
     // セグメンテーションを設定する
     SetupSegments();
+
     const uint16_t kernel_cs = 1 << 3;
     const uint16_t kernel_ss = 2 << 3;
-
     SetDSAll(0);
     SetCSSS(kernel_cs, kernel_ss);
 
@@ -201,10 +176,8 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
     if(auto err = InitializeHeap(*memory_manager)){
         Log(kError, "failed to allocate pages: %s at %s:%d\n",
                 err.Name(), err.File(), err.Line());
+        exit(1);
     }
-    mouse_cursor = new(mouse_cursor) MouseCursor {
-        pixel_writer, kDesktopBGColor, {300, 200}
-    };
 
     std::array<Message, 32> main_queue_data;
     ArrayQueue<Message> main_queue{main_queue_data};
@@ -294,6 +267,37 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
             }
         }
     }
+
+    const int kFrameWidth = frame_buffer_config.horizontal_resolution;
+    const int kFrameHeight = frame_buffer_config.vertical_resolution;
+
+    auto bgwindow = std::make_shared<Window>(kFrameWidth, kFrameHeight);
+    auto bgwriter = bgwindow->Writer();
+
+    DrawDesktop(*bgwriter);
+    console->SetWriter(bgwriter);
+
+  auto mouse_window = std::make_shared<Window>(
+      kMouseCursorWidth, kMouseCursorHeight);
+    mouse_window->SetTransparentColor(kMouseTransparentColor);
+    DrawMouseCursor(mouse_window->Writer(), {0, 0});
+
+    layer_manager = new LayerManager;
+    layer_manager->SetWriter(pixel_writer);
+
+    auto bglayer_id = layer_manager->NewLayer()
+        .SetWindow(bgwindow)
+        .Move({0, 0})
+        .ID();
+    
+    mouse_layer_id = layer_manager->NewLayer()
+        .SetWindow(mouse_window)
+        .Move({200, 200})
+        .ID();
+    
+    layer_manager->UpDown(bglayer_id, 0);
+    layer_manager->UpDown(mouse_layer_id, 1);
+    layer_manager->Draw();
 
     // ==============================================================================
     // 割り込みで受け取ったメッセージを処理する

@@ -87,7 +87,7 @@ void LayerManager::Hide(unsigned int id) {
     auto layer = FindLayer(id);
     auto pos = std::find(layer_stack_.begin(), layer_stack_.end(), layer);
     if(pos != layer_stack_.end()){
-        layer_stack_.end();
+        layer_stack_.erase(pos);
     }
 }
 
@@ -101,3 +101,5 @@ Layer* LayerManager::FindLayer(unsigned int id){
     }
     return it->get();
 }
+
+LayerManager* layer_manager;

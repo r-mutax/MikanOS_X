@@ -30,8 +30,8 @@ class Window {
 
         PixelColor& At(int x, int y);
         const PixelColor& At(int x, int y) const;
-        int Width() const  { return width_; };
-        int Height() const { return height_; };
+        int Width() const ;
+        int Height() const ;
     
     private:
         int width_, height_;
