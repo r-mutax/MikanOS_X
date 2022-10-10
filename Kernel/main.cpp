@@ -68,11 +68,16 @@ char memory_manager_buf[sizeof(BitmapMemoryManager)];
 BitmapMemoryManager* memory_manager;
 
 unsigned int mouse_layer_id;
+Vector2D<int> screen_size;
+Vector2D<int> mouse_position;
 
 void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
-    layer_manager->MoveRelative(mouse_layer_id, {displacement_x, displacement_y});
+    auto newpos = mouse_position + Vector2D<int> {displacement_x, displacement_y};
+    newpos = ElementMin(newpos, screen_size + Vector2D<int>{-1, -1});
+    mouse_position = ElementMax(newpos, {0, 0});
+
+    layer_manager->Move(mouse_layer_id, mouse_position);
     layer_manager->Draw();
-    printk("MouseObserver\n");
 }
 
 void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
@@ -134,7 +139,7 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
             BGRResv8BitPerColorPixelWriter{frame_buffer_config};
             break;
     }
-
+    
     DrawDesktop(*pixel_writer);
 
     console = new(console_buf) Console{
@@ -280,6 +285,9 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
 
     const int kFrameWidth = frame_buffer_config.horizontal_resolution;
     const int kFrameHeight = frame_buffer_config.vertical_resolution;
+
+    screen_size.x = frame_buffer_config.horizontal_resolution;
+    screen_size.y = frame_buffer_config.vertical_resolution;
 
     auto bgwindow = std::make_shared<Window>(kFrameWidth, kFrameHeight, frame_buffer_config.pixel_format);
     auto bgwriter = bgwindow->Writer();
