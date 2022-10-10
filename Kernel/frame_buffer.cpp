@@ -1,7 +1,6 @@
 #include "frame_buffer.hpp"
 
-namespace
-{
+namespace {
     int BytesPerPixel(PixelFormat format){
         switch(format){
             case kPixelRGBResv8BitPerColor: return 4;
@@ -45,8 +44,7 @@ Error FrameBuffer::Initialize(const FrameBufferConfig& config) {
         config_.pixels_per_scan_line = config_.horizontal_resolution;
     }
 
-    switch(config_.pixel_format)
-    {
+    switch(config_.pixel_format) {
         case kPixelRGBResv8BitPerColor:
             writer_ = std::make_unique<RGBResv8BitPerColorPixelWriter>(config_);
             break;
@@ -58,7 +56,6 @@ Error FrameBuffer::Initialize(const FrameBufferConfig& config) {
     }
 
     return MAKE_ERROR(Error::kSuccess);
-
 }
 
 Error FrameBuffer::Copy(Vector2D<int> dst_pos, const FrameBuffer& src) {
@@ -75,7 +72,7 @@ Error FrameBuffer::Copy(Vector2D<int> dst_pos, const FrameBuffer& src) {
     const auto src_size = FrameBufferSize(src.config_);
 
     const Vector2D<int> dst_start = ElementMax(dst_pos, {0, 0});
-    const Vector2D<int> dst_end = ElementMax(dst_pos + src_size, dst_size);
+    const Vector2D<int> dst_end = ElementMin(dst_pos + src_size, dst_size);
 
     uint8_t* dst_buf = FrameAddrAt(dst_start, config_);
     const uint8_t* src_buf = FrameAddrAt({0, 0}, src.config_);
