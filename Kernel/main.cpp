@@ -300,10 +300,11 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
     mouse_window->SetTransparentColor(kMouseTransparentColor);
     DrawMouseCursor(mouse_window->Writer(), {0, 0});
 
-    auto main_window = std::make_shared<Window>(160, 68, frame_buffer_config.pixel_format);
+    auto main_window = std::make_shared<Window>(160, 52, frame_buffer_config.pixel_format);
     DrawWindow(*main_window->Writer(), "Hello Window");
-    WriteString(*main_window->Writer(), {24, 28}, "Welcome to", {0, 0, 0});
-    WriteString(*main_window->Writer(), {24, 44}, "MikanOS world!", {0, 0, 0});
+
+    char str[128];
+    unsigned int count = 0;
 
     FrameBuffer screen;
     if(auto err = screen.Initialize(frame_buffer_config)) {
@@ -330,13 +331,19 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
         .ID();
 
     layer_manager->UpDown(bglayer_id, 0);
-    layer_manager->UpDown(mouse_layer_id, 2);
+    layer_manager->UpDown(mouse_layer_id, 1);
     layer_manager->UpDown(main_window_layer_id, 1);
     layer_manager->Draw();
 
     // ==============================================================================
     // 割り込みで受け取ったメッセージを処理する
     while (true){
+
+        count++;
+        sprintf(str, "%010u", count);
+        FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
+        WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
+        layer_manager->Draw();
 
         // 今からメッセージキューからメッセージを取り出す。
         // その間に割り込みが起きてメッセージが追加されると困るので、
@@ -347,7 +354,7 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
             // 省電力モードでは、割り込みが起きるまでCPUが止まる？
             // その際に、次の割り込みが起こらなくなると困るので、
             // sti命令で割り込み許可フラグを立てておく。
-            __asm__("sti\n\thlt");
+            __asm__("sti");
             continue;
         }
 
