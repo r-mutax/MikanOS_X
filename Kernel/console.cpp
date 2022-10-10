@@ -41,16 +41,15 @@ void Console::Newline(){
     cursor_column_ = 0;
     if(cursor_row_ < kRows - 1){
         ++cursor_row_;
+        return;
+    }
+
+    if(window_){
+        Rectangle<int> move_src{{0, 16}, {8 * kColumns, 16 * (kRows - 1)}};
+        window_->Move({0, 0}, move_src);
+        FillRectangle(*writer_, {0, 16 * (kRows - 1)}, {8 * kColumns, 16}, bg_color_);
     } else {
-        // スクロール処理
-
-        // 画面を塗りつぶす
-        for(int y = 0; y < 16 * kRows; ++y){
-            for(int x = 0; x < 8 * kColumns; ++x){
-                writer_->Write(Vector2D<int>{x, y}, bg_color_);
-            }
-        }
-
+        FillRectangle(*writer_, {0, 0}, {8 * kColumns, 16 * kRows}, bg_color_);
         for(int row = 0; row < kRows - 1; ++row){
             memcpy(buffer_[row], buffer_[row + 1], kColumns + 1);
             WriteString(*writer_, Vector2D<int>{0, 16 * row}, buffer_[row], fg_color_);
@@ -63,4 +62,14 @@ void Console::Refresh() {
     for (int row = 0; row < kRows; ++row){
         WriteString(*writer_, Vector2D<int>{0, 16 * row}, buffer_[row], fg_color_);
     }
+}
+
+void Console::SetWindow(const std::shared_ptr<Window>& window){
+    if(window == window_){
+        return;
+    }
+
+    window_ = window;
+    writer_ = window->Writer();
+    Refresh();
 }
