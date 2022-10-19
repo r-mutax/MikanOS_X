@@ -1,4 +1,5 @@
 #pragma once
+
 #include <stdint.h>
 
 typedef uintptr_t Elf64_Addr;
@@ -29,13 +30,13 @@ typedef struct {
 } Elf64_Ehdr;
 
 typedef struct {
-  Elf64_Word  p_type;       // PHDR, LOADなどのセグメント種別
-  Elf64_Word  p_flags;      // フラグ
-  Elf64_Off   p_offset;     // オフセット
-  Elf64_Addr  p_vaddr;      // 仮想Addr
-  Elf64_Addr  p_paddr;      // 物理Addr?
-  Elf64_Xword p_filesz;     // ファイルサイズ
-  Elf64_Xword p_memsz;      // メモリサイズ
+  Elf64_Word  p_type;
+  Elf64_Word  p_flags;
+  Elf64_Off   p_offset;
+  Elf64_Addr  p_vaddr;
+  Elf64_Addr  p_paddr;
+  Elf64_Xword p_filesz;
+  Elf64_Xword p_memsz;
   Elf64_Xword p_align;
 } Elf64_Phdr;
 

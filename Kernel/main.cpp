@@ -77,7 +77,6 @@ void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
     mouse_position = ElementMax(newpos, {0, 0});
 
     layer_manager->Move(mouse_layer_id, mouse_position);
-    layer_manager->Draw();
 }
 
 void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
@@ -303,6 +302,9 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
     auto main_window = std::make_shared<Window>(160, 52, frame_buffer_config.pixel_format);
     DrawWindow(*main_window->Writer(), "Hello Window");
 
+    auto console_window = std::make_shared<Window>(Console::kColumns * 8, Console::kRows * 16, frame_buffer_config.pixel_format);
+    console->SetWindow(console_window);
+
     char str[128];
     unsigned int count = 0;
 
@@ -322,7 +324,7 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
     
     mouse_layer_id = layer_manager->NewLayer()
         .SetWindow(mouse_window)
-        .Move({200, 200})
+        .Move(mouse_position)
         .ID();
     
     auto main_window_layer_id = layer_manager->NewLayer()
@@ -330,10 +332,18 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
         .Move({300, 100})
         .ID();
 
+    console->SetLayerID(layer_manager->NewLayer()
+            .SetWindow(console_window)
+            .Move({0, 0})
+            .ID()
+        );
+        
+
     layer_manager->UpDown(bglayer_id, 0);
-    layer_manager->UpDown(mouse_layer_id, 1);
-    layer_manager->UpDown(main_window_layer_id, 1);
-    layer_manager->Draw();
+    layer_manager->UpDown(console->LayerID(), 1);
+    layer_manager->UpDown(main_window_layer_id, 2);
+    layer_manager->UpDown(mouse_layer_id, 3);
+    layer_manager->Draw({{0, 0}, screen_size});
 
     // ==============================================================================
     // 割り込みで受け取ったメッセージを処理する
@@ -343,7 +353,7 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
         sprintf(str, "%010u", count);
         FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
         WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
-        layer_manager->Draw();
+        layer_manager->Draw(main_window_layer_id);
 
         // 今からメッセージキューからメッセージを取り出す。
         // その間に割り込みが起きてメッセージが追加されると困るので、
