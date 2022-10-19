@@ -36,6 +36,7 @@ class LayerManager {
         void Draw(unsigned int id) const;
         void Move(unsigned int id, Vector2D<int> new_position);
         void MoveRelative(unsigned int id, Vector2D<int> pos_diff);
+        Layer* FindLayerByPosition(Vector2D<int> pos, unsigned int exclude_id) const;
 
         void UpDown(unsigned int id, int new_height);
         void Hide(unsigned int id);
