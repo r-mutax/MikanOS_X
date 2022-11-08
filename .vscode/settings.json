@@ -9,6 +9,7 @@
         "random": "cpp",
         "frame_buffer_config.hpp": "c",
         "memory_map.hpp": "c",
-        "memory": "cpp"
+        "memory": "cpp",
+        "limits": "cpp"
     }
 }

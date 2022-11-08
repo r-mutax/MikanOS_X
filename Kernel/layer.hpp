@@ -15,6 +15,8 @@ class Layer {
         Layer& SetWindow(const std::shared_ptr<Window>& window);
         std::shared_ptr<Window> GetWindow() const;
         Vector2D<int> GetPosition() const;
+        Layer& SetDraggable(bool draggable);
+        bool IsDraggable() const;
 
         Layer& Move(Vector2D<int> pos);
         Layer& MoveRelative(Vector2D<int> pos_diff);
@@ -34,16 +36,14 @@ class LayerManager {
     public:
         void SetWriter(FrameBuffer* screen);
         Layer& NewLayer();
-        void Draw() const;
+
         void Draw(const Rectangle<int>& area) const;
         void Draw(unsigned int id) const;
-        void Move(unsigned int id, Vector2D<int> new_position);
+        void Move(unsigned int id, Vector2D<int> new_pos);
         void MoveRelative(unsigned int id, Vector2D<int> pos_diff);
-        Layer* FindLayerByPosition(Vector2D<int> pos, unsigned int exclude_id) const;
-
         void UpDown(unsigned int id, int new_height);
         void Hide(unsigned int id);
-    
+        Layer* FindLayerByPosition(Vector2D<int> pos, unsigned int exclude_id) const;
     private:
         FrameBuffer* screen_{nullptr};
         mutable FrameBuffer back_buffer_{};
@@ -55,3 +55,5 @@ class LayerManager {
 };
 
 extern LayerManager* layer_manager;
+
+void InitializeLayer();

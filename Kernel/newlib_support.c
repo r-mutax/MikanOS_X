@@ -1,11 +1,11 @@
 #include <errno.h>
 #include <sys/types.h>
 
-caddr_t program_break, program_break_end;
-
 void _exit(void){
     while(1) __asm__("hlt");
 }
+
+caddr_t program_break, program_break_end;
 
 caddr_t sbrk(int incr) {
     if (program_break == 0

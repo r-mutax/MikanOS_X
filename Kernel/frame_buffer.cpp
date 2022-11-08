@@ -5,8 +5,8 @@ namespace {
         switch(format){
             case kPixelRGBResv8BitPerColor: return 4;
             case kPixelBGRResv8BitPerColor: return 4;
-            default: return -1;
         }
+	    return -1;
     }
 
     uint8_t* FrameAddrAt(Vector2D<int> pos, const FrameBufferConfig& config){

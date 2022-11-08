@@ -11,7 +11,7 @@ struct MemoryMap {
     uint32_t descriptor_version;
 };
 
-struct MemoryDescripter {
+struct MemoryDescriptor {
     uint32_t type;
     uintptr_t physical_start;
     uintptr_t virtual_start;
@@ -30,7 +30,8 @@ enum class MemoryType {
     kEfiRuntimeServicesData,
     kEfiConventionalMemory,
     kEfiUnusableMemory,
-    kEfiACPIRecalimMemory,
+    kEfiACPIReclaimMemory,
+    kEfiACPIMemoryNVS,
     kEfiMemoryMappedIO,
     kEfiMemoryMappedIOPortSpace,
     kEfiPalCode,
@@ -43,7 +44,7 @@ inline bool operator==(uint32_t lhs, MemoryType rhs){
 }
 
 inline bool operator==(MemoryType lhs, uint32_t rhs) {
-    return lhs == rhs;
+    return rhs == lhs;
 }
 
 inline bool IsAvailable(MemoryType memory_type){
