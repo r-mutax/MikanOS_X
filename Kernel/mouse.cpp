@@ -50,7 +50,9 @@ void DrawMouseCursor(PixelWriter* pixel_writer, Vector2D<int> position) {
     }
 }
 
+
 Mouse::Mouse(unsigned int layer_id) : layer_id_{layer_id}{    
+
 }
 
 void Mouse::SetPosition(Vector2D<int> position){
@@ -87,6 +89,7 @@ void Mouse::OnInterrupt(uint8_t buttons, int8_t displacement_x, int8_t displacem
 }
 
 void InitializeMouse(){
+
     auto mouse_window = std::make_shared<Window>(
         kMouseCursorWidth, kMouseCursorHeight, screen_config.pixel_format);
     mouse_window->SetTransparentColor(kMouseTransparentColor);

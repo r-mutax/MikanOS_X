@@ -20,9 +20,11 @@ class Layer {
 
         Layer& Move(Vector2D<int> pos);
         Layer& MoveRelative(Vector2D<int> pos_diff);
+        Layer& SetDraggable(bool draggable);
 
         void DrawTo(FrameBuffer& screen, const Rectangle<int>& area) const;
-    
+        bool IsDraggable() const;
+
     private:
         unsigned int id_;
         Vector2D<int> pos_{};

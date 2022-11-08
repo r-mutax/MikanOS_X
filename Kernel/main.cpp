@@ -38,12 +38,14 @@ int printk(const char* format, ...) {
     return result;
 }
 
+
 std::shared_ptr<Window> main_window;
 unsigned int main_window_layer_id;
 void InitializeMainWindow(){
     main_window = std::make_shared<Window>(
         160, 52, screen_config.pixel_format);
     DrawWindow(*main_window->Writer(), "Hello Window");
+
 
     main_window_layer_id = layer_manager->NewLayer()
         .SetWindow(main_window)
@@ -60,6 +62,7 @@ alignas(16) uint8_t kernel_main_stack[1024 * 1024];
 
 extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_ref,
                                     const MemoryMap& memory_map_ref){
+
 
     MemoryMap memory_map{memory_map_ref};
 

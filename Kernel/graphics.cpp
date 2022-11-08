@@ -60,6 +60,7 @@ void DrawDesktop(PixelWriter& writer){
                     {30, 30},
                     {160, 160, 160});
 }
+
 FrameBufferConfig screen_config;
 PixelWriter* screen_writer;
 
@@ -91,4 +92,3 @@ void InitializeGraphics(const FrameBufferConfig& screen_config){
     }
 
     DrawDesktop(*screen_writer);
-}
