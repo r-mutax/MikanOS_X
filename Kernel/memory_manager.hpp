@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "error.hpp"
+#include "memory_map.hpp"
 
 namespace {
     constexpr unsigned long long operator""_KiB(unsigned long long kib){
@@ -54,7 +55,7 @@ class BitmapMemoryManager {
         Error Free(FrameID start_frame, size_t num_frames);
         void MarkAllocated(FrameID start_frame, size_t num_frames);
 
-        void SetMemoryRange(FrameID raneg_begin, FrameID range_end);
+        void SetMemoryRange(FrameID range_begin, FrameID range_end);
     
     private:
         std::array<MapLineType, kFrameCount / kBitsPerMapLine> alloc_map_;
@@ -66,4 +67,4 @@ class BitmapMemoryManager {
         void SetBit(FrameID frame, bool allocated);
 };
 
-Error InitializeHeap(BitmapMemoryManager& memory_manager);
+void InitializeMemoryManager(const MemoryMap& memory_map);

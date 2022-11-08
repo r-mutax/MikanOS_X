@@ -19,11 +19,18 @@ template<typename T>
 struct Vector2D {
     T x, y;
 
-    template<typename U>
+    template <typename U>
     Vector2D<T>& operator += (const Vector2D<U>& rhs){
         x += rhs.x;
         y += rhs.y;
         return *this;
+    }
+
+    template <typename U>
+    Vector2D<T> operator +(const Vector2D<U>& rhs) const {
+        auto tmp = *this;
+        tmp += rhs;
+        return tmp;
     }
 
     template<typename U>
@@ -32,19 +39,14 @@ struct Vector2D {
         y -= rhs.y;
         return *this;
     }
+
+    template <typename U>
+    Vector2D<T> operator -(const Vector2D<U>& rhs) const {
+        auto tmp = *this;
+        tmp -= rhs;
+        return tmp;
+    }
 };
-
-template <typename T, typename U>
-auto operator +(const Vector2D<T>& lhs, const Vector2D<U>& rhs)
-    -> Vector2D<decltype(lhs.x + rhs.x)>{
-    return {lhs.x + rhs.x, lhs.y + rhs.y};
-}
-
-template <typename T, typename U>
-auto operator -(const Vector2D<T>& lhs, const Vector2D<U>& rhs)
-    -> Vector2D<decltype(lhs.x + rhs.x)>{
-    return {lhs.x - rhs.x, lhs.y - rhs.y};
-}
 
 template<typename T>
 Vector2D<T> ElementMax(const Vector2D<T>& lhs, const Vector2D<T>& rhs){
@@ -122,3 +124,9 @@ const PixelColor kDesktopBGColor{45, 118, 237};
 const PixelColor kDesktopFGColor{255, 255, 255};
 
 void DrawDesktop(PixelWriter& writer);
+
+extern FrameBufferConfig screen_config;
+extern PixelWriter* screen_writer;
+Vector2D<int> ScreenSize();
+
+void InitializeGraphics(const FrameBufferConfig& screen_config);

@@ -1,7 +1,6 @@
 #include "timer.hpp"
 
-namespace 
-{
+namespace {
     const uint32_t kCountMax = 0xffffffffu;
     volatile uint32_t& lvt_timer = *reinterpret_cast<uint32_t*>(0xfee00320);
     volatile uint32_t& initial_count = *reinterpret_cast<uint32_t*>(0xfee00380);

@@ -1,8 +1,9 @@
 #include "pci.hpp"
-#include "asmfunc.h"
 
-namespace
-{
+#include "asmfunc.h"
+#include "logger.hpp"
+
+namespace {
     using namespace pci;
 
     uint32_t MakeAddress(uint8_t bus, uint8_t device, uint8_t function, uint8_t reg_addr){
@@ -26,8 +27,8 @@ namespace
     Error ScanBus(uint8_t bus);
     
     Error ScanFunction(uint8_t bus, uint8_t device, uint8_t function) {
-        auto header_type = ReadHeaderType(bus, device, function);
         auto class_code = ReadClassCode(bus, device, function);
+        auto header_type = ReadHeaderType(bus, device, function);
         Device dev{bus, device, function, header_type, class_code};
         if(auto err = AddDevice(dev)){
             // 32個以上のデバイスを登録している場合、デバイスが多すぎる
@@ -152,15 +153,15 @@ namespace
 namespace pci {
 
     void WriteAddress(uint32_t address){
-        IoOut32(pci::kConfigAddress, address);
+    IoOut32(kConfigAddress, address);
     }
 
     void WriteData(uint32_t value) {
-        IoOut32(pci::kConfigData, value);
+    IoOut32(kConfigData, value);
     }
 
     uint32_t ReadData() {
-        return IoIn32(pci::kConfigData);
+    return IoIn32(kConfigData);
     }
 
     uint16_t ReadVendorId(uint8_t bus, uint8_t device, uint8_t function) {
@@ -168,14 +169,55 @@ namespace pci {
         return ReadData() & 0xffffu;
     }
 
-    uint16_t ReadDeviceID(uint8_t bus, uint8_t device, uint8_t function) {
+  uint16_t ReadDeviceId(uint8_t bus, uint8_t device, uint8_t function) {
         WriteAddress(MakeAddress(bus, device, function, 0x00));
         return ReadData() >> 16;
     }
 
     uint8_t  ReadHeaderType(uint8_t bus, uint8_t device, uint8_t function) {
         WriteAddress(MakeAddress(bus, device, function, 0x0c));
-        return (ReadData() >> 16) & 0xff;
+    return (ReadData() >> 16) & 0xffu;
+    }
+
+    ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t function) {
+
+        WriteAddress(MakeAddress(bus, device, function, 0x08));
+        auto reg = ReadData();
+
+        ClassCode cc;
+        cc.base       = (reg >> 24) & 0xffu;
+        cc.sub        = (reg >> 16) & 0xffu;
+        cc.interface  = (reg >> 8)  & 0xffu;
+
+        return cc;
+    }
+
+    uint32_t ReadBusNumbers(uint8_t bus, uint8_t device, uint8_t function) {
+        WriteAddress(MakeAddress(bus, device, function, 0x18));
+        return ReadData();
+    }
+
+    bool IsSingleFunctionDevice(uint8_t header_type){
+        return (header_type & 0x80u) == 0;
+    }
+
+    Error ScanAllBus() {
+        num_device = 0;
+        auto header_type = ReadHeaderType(0, 0, 0);
+        if(IsSingleFunctionDevice(header_type)){
+            return ScanBus(0);
+        }
+
+    for (uint8_t function = 0; function < 8; ++function) {
+            if(ReadVendorId(0, 0, function) == 0xffffu){
+                // ベンダID = 0xffffuのファンクションは、無効なファンクション
+                continue;
+            }
+            if(auto err = ScanBus(function)) {
+                return err;
+            }
+        }
+        return MAKE_ERROR(Error::kSuccess);
     }
 
     uint32_t ReadConfReg(const Device& dev, uint8_t reg_addr) {
@@ -212,48 +254,7 @@ namespace pci {
         };
     }
 
-    ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t function) {
-
-        WriteAddress(MakeAddress(bus, device, function, 0x08));
-        auto reg = ReadData();
-
-        ClassCode cc;
-        cc.base = (reg >> 24);
-        cc.sub = (reg >> 16) & 0xffu;
-        cc.interface = (reg >> 8) & 0xffu;
-
-        return cc;
-    }
-
-    uint32_t ReadBusNumbers(uint8_t bus, uint8_t device, uint8_t function) {
-        WriteAddress(MakeAddress(bus, device, function, 0x18));
-        return ReadData();
-    }
-
-    bool IsSingleFunctionDevice(uint8_t header_type){
-        return (header_type & 0x80u) == 0;
-    }
-
-    Error ScanAllBus() {
-        num_device = 0;
-        auto header_type = ReadHeaderType(0, 0, 0);
-        if(IsSingleFunctionDevice(header_type)){
-            return ScanBus(0);
-        }
-
-        for (uint8_t function = 1; function < 8; ++function){
-            if(ReadVendorId(0, 0, function) == 0xffffu){
-                // ベンダID = 0xffffuのファンクションは、無効なファンクション
-                continue;
-            }
-            if(auto err = ScanBus(function)) {
-                return err;
-            }
-        }
-        return MAKE_ERROR(Error::kSuccess);
-    }
-
-    CapabilityHeader ReadCapablityHeader(const Device& dev, uint8_t addr){
+  CapabilityHeader ReadCapabilityHeader(const Device& dev, uint8_t addr) {
         CapabilityHeader header;
         header.data = pci::ReadConfReg(dev, addr);
         return header;
@@ -264,7 +265,7 @@ namespace pci {
         uint8_t cap_addr = ReadConfReg(dev, 0x34) & 0xffu;
         uint8_t msi_cap_addr = 0, msix_cap_addr = 0;
         while(cap_addr != 0){
-            auto header = ReadCapablityHeader(dev, cap_addr);
+      auto header = ReadCapabilityHeader(dev, cap_addr);
             if(header.bits.cap_id == kCapabilityMSI) {
                 msi_cap_addr = cap_addr;
             } else if(header.bits.cap_id == kCapabilityMSIX){
@@ -276,7 +277,7 @@ namespace pci {
         if(msi_cap_addr) {
             return ConfigureMSIRegister(dev, msi_cap_addr, msg_addr, msg_data, num_vector_exponent);
         } else if(msix_cap_addr){
-            return ConfigureMSIXRegister(dev, msi_cap_addr, msg_addr, msg_data, num_vector_exponent);
+      return ConfigureMSIXRegister(dev, msix_cap_addr, msg_addr, msg_data, num_vector_exponent);
         }
 
         return MAKE_ERROR(Error::kNoPCIMSI);
@@ -293,5 +294,21 @@ namespace pci {
             msg_data |= 0xc000;
         }
         return ConfigureMSI(dev, msg_addr, msg_data, num_vector_exponent);
+    }
+}
+
+void InitializePCI(){
+    if(auto err = pci::ScanAllBus()){
+        Log(kError, "ScanAllBus: %s\n", err.Name());
+        exit(1);
+    }
+
+    for(int i = 0; i < pci::num_device; ++i){
+    const auto& dev = pci::devices[i];
+        auto vendor_id = pci::ReadVendorId(dev);
+        auto class_code = pci::ReadClassCode(dev.bus, dev.device, dev.function);
+        Log(kDebug, "%d.%d.%d: vend %04x, class %08x, head %02x\n",
+        dev.bus, dev.device, dev.function,
+        vendor_id, class_code, dev.header_type);
     }
 }

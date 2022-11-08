@@ -3,10 +3,10 @@
 #include "asmfunc.h"
 
 namespace {
-    std::array<SegmentDescripter, 3> gdt;
+  std::array<SegmentDescriptor, 3> gdt;
 }
 
-void SetCodeSegment(SegmentDescripter& desc,
+void SetCodeSegment(SegmentDescriptor& desc,
                     DescriptorType type,
                     unsigned int descriptor_privilege_level,
                     uint32_t base,
@@ -21,8 +21,8 @@ void SetCodeSegment(SegmentDescripter& desc,
     desc.bits.limit_high = (limit >> 16) & 0xfu;
 
     desc.bits.type = type;
-    desc.bits.system_segment = 1;
-    desc.bits.descripter_privilege_level = descriptor_privilege_level;
+    desc.bits.system_segment = 1; // 1: code & data segment
+    desc.bits.descriptor_privilege_level = descriptor_privilege_level;
     desc.bits.present = 1;
     desc.bits.available = 0;
     desc.bits.long_mode = 1;
@@ -30,7 +30,7 @@ void SetCodeSegment(SegmentDescripter& desc,
     desc.bits.granularity = 1;
 }
 
-void SetDataSegment(SegmentDescripter& desc,
+void SetDataSegment(SegmentDescriptor& desc,
                     DescriptorType type,
                     unsigned int descriptor_privilege_level,
                     uint32_t base,
@@ -49,4 +49,11 @@ void SetupSegments() {
     // 3番目のGDTにはデータセグメントとする。
     SetDataSegment(gdt[2], DescriptorType::kReadWrite, 0, 0, 0xfffff);
     LoadGDT(sizeof(gdt) - 1, reinterpret_cast<uintptr_t>(&gdt[0]));
+}
+
+void InitializeSegmentation() {
+    SetupSegments();
+    
+    SetDSAll(kKernelDS);
+    SetCSSS(kKernelCS, kKernelSS);
 }

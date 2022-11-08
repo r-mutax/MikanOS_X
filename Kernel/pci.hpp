@@ -4,9 +4,6 @@
 #include <array>
 
 #include "error.hpp"
-
-namespace pci
-{
     /*
         memo
         PCIコンフィギュレーション空間にPCIデバイスの情報が載っている。
@@ -15,12 +12,13 @@ namespace pci
         この２つのレジスタはIOアドレス空間に存在するので、それ専用の命令でのアクセスが必要。
         そのためasmfunc.asmにIoOut32()、IoIn32()命令を用意して、アクセスできるようにしている。
     */
-
+    
+namespace pci{
     // CONFIG_ADDRESS レジスタのIOポートアドレス
-    const uint16_t kConfigAddress = 0xcf8;
+    const uint16_t kConfigAddress = 0x0cf8;
 
     // CONFIG_DATA　レジスタのIOポートアドレス
-    const uint16_t kConfigData = 0xcfc;
+    const uint16_t kConfigData = 0x0cfc;
     
     // PCIデバイスのクラスコード
     // Base ClassとSub Classがある。
@@ -51,12 +49,13 @@ namespace pci
     // CONFIG_DATAにデータを書き込む
     void WriteData(uint32_t value);
 
+    uint32_t ReadData();
+
     uint16_t ReadVendorId(uint8_t bus, uint8_t device, uint8_t function);
     uint16_t ReadDeviceId(uint8_t bus, uint8_t device, uint8_t function);
     uint8_t  ReadHeaderType(uint8_t bus, uint8_t device, uint8_t function);
     ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t function);
-    WithError<uint64_t> ReadBar(const Device& dev, unsigned int offset);
-
+    
     inline uint16_t ReadVendorId(const Device& dev){
         return ReadVendorId(dev.bus, dev.device, dev.function);
     }
@@ -97,6 +96,8 @@ namespace pci
     const uint8_t kCapabilityMSI = 0x05;
     const uint8_t kCapabilityMSIX = 0x11;
 
+    CapabilityHeader ReadCapabilityHeader(const Device& dev, uint8_t addr);
+
     struct MSICapability {
         union {
             uint32_t data;
@@ -134,12 +135,13 @@ namespace pci
         kSMI            = 0b010,
         kNMI            = 0b100,
         kINIT           = 0b101,
-        kExtINT         = 0b111
+        kExtINT         = 0b111,
     };
 
     Error ConfigureMSIFixedDestination(
         const Device& dev, uint8_t apic_id,
         MSITriggerMode trigger_mode, MSIDeliveryMode delivery_mode,
-        uint8_t vector, unsigned int num_vector_exponent
-    );
+        uint8_t vector, unsigned int num_vector_exponent);
 }
+
+void InitializePCI();
