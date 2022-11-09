@@ -92,3 +92,4 @@ void InitializeGraphics(const FrameBufferConfig& screen_config){
     }
 
     DrawDesktop(*screen_writer);
+}
