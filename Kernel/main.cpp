@@ -90,14 +90,16 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
     InitializeLAPICTimer();
 
     char str[128];
-    unsigned int count = 0;
 
     // ==============================================================================
     // 割り込みで受け取ったメッセージを処理する
     while (true){
 
-        count++;
-        sprintf(str, "%010u", count);
+        __asm__("cli");
+        const auto tick = timer_manager->CurrentTick();
+        __asm__("sti");
+
+        sprintf(str, "%010lu", tick);
         FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
         WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
         layer_manager->Draw(main_window_layer_id);
@@ -111,7 +113,7 @@ extern "C" void KernelMainNewStack(const FrameBufferConfig& frame_buffer_config_
             // 省電力モードでは、割り込みが起きるまでCPUが止まる？
             // その際に、次の割り込みが起こらなくなると困るので、
             // sti命令で割り込み許可フラグを立てておく。
-            __asm__("sti");
+            __asm__("sti\n\thlt");
             continue;
         }
 
