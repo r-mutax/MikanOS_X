@@ -270,6 +270,9 @@ EFI_STATUS EFIAPI UefiMain(
     // ブートローダでピクセルを塗りつぶす
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
     OpenGOP(image_handle, &gop);
+    if (EFI_ERROR(status)){
+        Print(L"failed to open GOP* %r\n", status);
+    }
 
     // Kernelファイルのオープン
     EFI_FILE_PROTOCOL* kernel_file;
@@ -340,6 +343,8 @@ EFI_STATUS EFIAPI UefiMain(
     }
 
     // Kernelを起動する。
+    UINT64 entry_addr = *(UINT64*)(kernel_first_addr + 24);
+    
     struct FrameBufferConfig config = {
         (UINT8*)gop->Mode->FrameBufferBase,
         gop->Mode->Info->PixelsPerScanLine,
@@ -361,14 +366,22 @@ EFI_STATUS EFIAPI UefiMain(
             break;
     }
 
+    VOID* acpi_table = NULL;
+    for(UINTN i = 0; i < system_table->NumberOfTableEntries; ++i){
+        if(CompareGuid(&gEfiAcpiTableGuid,
+                        &system_table->ConfigurationTable[i].VendorGuid)){
+            acpi_table = system_table->ConfigurationTable[i].VendorTable;
+            break;
+        }
+    }
 
-    UINT64 entry_addr = *(UINT64*)(kernel_first_addr + 24);
-    typedef void EntryPointType(const struct FrameBufferConfig*, const struct MemoryMap*);
+    typedef void EntryPointType(const struct FrameBufferConfig*,
+                                const struct MemoryMap*,
+                                const VOID*);
     EntryPointType* entry_point = (EntryPointType*)entry_addr;
-    entry_point(&config, &memmap);
+    entry_point(&config, &memmap, acpi_table);
 
     Print(L"Error : Kernel cant load.\n");
-
 
     while(1);
     return EFI_SUCCESS;

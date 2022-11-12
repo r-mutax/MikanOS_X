@@ -10,6 +10,7 @@
         "frame_buffer_config.hpp": "c",
         "memory_map.hpp": "c",
         "memory": "cpp",
-        "limits": "cpp"
+        "limits": "cpp",
+        "fileinfo.h": "c"
     }
 }
