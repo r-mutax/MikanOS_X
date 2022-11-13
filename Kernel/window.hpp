@@ -46,3 +46,5 @@ class Window {
 };
 
 void DrawWindow(PixelWriter& writer, const char* title);
+void DrawTextBox(PixelWriter& writer, Vector2D<int> pos, Vector2D<int> size);
+
