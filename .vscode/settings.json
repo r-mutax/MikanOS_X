@@ -11,6 +11,7 @@
         "memory_map.hpp": "c",
         "memory": "cpp",
         "limits": "cpp",
-        "fileinfo.h": "c"
+        "fileinfo.h": "c",
+        "cstring": "cpp"
     }
 }
