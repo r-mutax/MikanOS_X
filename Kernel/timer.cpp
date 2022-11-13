@@ -74,6 +74,7 @@ void TimerManager::Tick(){
 }
 
 TimerManager* timer_manager;
+unsigned int lapic_taimer_freq;
 
 void LAPICTimerOnInterrupt(){
     timer_manager->Tick();
