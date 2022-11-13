@@ -18,6 +18,7 @@ OBJS = 	main.o \
 		layer.o \
 		timer.o \
 		acpi.o \
+		keyboard.o \
 		frame_buffer.o \
 		usb/memory.o \
 		usb/device.o \
