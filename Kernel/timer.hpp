@@ -37,5 +37,7 @@ class TimerManager{
 };
 
 extern TimerManager* timer_manager;
+extern unsigned int lapic_taimer_freq;
+const int kTimerFreq = 100;
 
 void LAPICTimerOnInterrupt();
