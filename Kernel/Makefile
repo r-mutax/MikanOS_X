@@ -19,6 +19,7 @@ OBJS = 	main.o \
 		timer.o \
 		acpi.o \
 		keyboard.o \
+		task.o \
 		frame_buffer.o \
 		usb/memory.o \
 		usb/device.o \
