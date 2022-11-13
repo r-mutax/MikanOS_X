@@ -4,7 +4,7 @@
 
 enum PixelFormat {
     kPixelRGBResv8BitPerColor,
-    kPixelBGRResv8BitPerColor
+  kPixelBGRResv8BitPerColor,
 };
 
 struct FrameBufferConfig {
