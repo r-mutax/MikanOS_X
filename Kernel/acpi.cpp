@@ -19,7 +19,8 @@ namespace{
         }
         return sum;
     }
-}
+
+} // namespace
 
 namespace acpi {
     bool RSDP::IsValid() const {
@@ -44,11 +45,11 @@ namespace acpi {
 
     bool DescriptionHeader::IsValid(const char* expected_signature) const {
         if (strncmp(this->signature, expected_signature, 4) != 0){
-            Log(kError, "invalid signature: %.4s\n", this->signature);
+    Log(kDebug, "invalid signature: %.4s\n", this->signature);
             return false;
         }
         if(auto sum = SumBytes(this, this->length); sum != 0){
-            Log(kError, "sum of %u bytes must be 0: %d\n", this->length, sum);
+    Log(kDebug, "sum of %u bytes must be 0: %d\n", this->length,  sum);
             return false;
         }
         return true;
@@ -73,7 +74,7 @@ namespace acpi {
             end &= 0x00ffffffu;
         }
 
-        if(end < start){
+  if (end < start) { // overflow
             while(IoIn32(fadt->pm_tmr_blk) >= start);
         }
         while(IoIn32(fadt->pm_tmr_blk) < end);
@@ -93,7 +94,7 @@ namespace acpi {
         fadt = nullptr;
         for (int i = 0; i < xsdt.Count(); ++i) {
             const auto& entry = xsdt[i];
-            if(entry.IsValid("FACP")) {
+    if (entry.IsValid("FACP")) { // FACP is the signature of FADT
                 fadt = reinterpret_cast<const FADT*>(&entry);
                 break;
             }
@@ -104,4 +105,5 @@ namespace acpi {
             exit(1);
         }
     }
-}
+
+} // namespace acpi
