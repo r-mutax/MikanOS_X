@@ -55,8 +55,8 @@ class Error {
     "kUnknownXHCISpeedID",
     "kNoWaiter",
     "kNoPCIMSI",
-    "kNoSuchTask",
     "kUnknownPixelFormat",
+    "kNoSuchTask",
   };
   static_assert(Error::Code::kLastOfCode == code_names_.size());
 

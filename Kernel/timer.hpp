@@ -5,7 +5,7 @@
 #include <vector>
 #include "message.hpp"
 
-void InitializeLAPICTimer(std::deque<Message>& msg_queue);
+void InitializeLAPICTimer();
 void StartLAPICTimer();
 uint32_t LAPICTimerElapsed();
 void StopLAPICTimer();
@@ -26,18 +26,17 @@ inline bool operator<(const Timer& lhs, const Timer& rhs){
 
 class TimerManager{
     public:
-        TimerManager(std::deque<Message>& msg_queue);
+        TimerManager();
         void AddTimer(const Timer& timer);
         bool Tick();
         unsigned long CurrentTick() const { return tick_; }
     private:
         volatile unsigned long tick_{0};
         std::priority_queue<Timer> timers_{};
-        std::deque<Message>& msg_queue_;
 };
 
 extern TimerManager* timer_manager;
-extern unsigned int lapic_taimer_freq;
+extern unsigned long lapic_taimer_freq;
 const int kTimerFreq = 100;
 
 const int kTaskTimerPeriod = static_cast<int>(kTimerFreq * 0.02);
