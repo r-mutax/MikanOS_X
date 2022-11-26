@@ -81,14 +81,12 @@ void LayerManager::Draw(unsigned int id, Rectangle<int> area) const {
         if (layer->ID() == id) {
             window_area.size = layer->GetWindow()->Size();
             window_area.pos = layer->GetPosition();
-            draw = true;
-        }
-        if(area.size.x >= 0 || area.size.y >= 0){
+         if(area.size.x >= 0 || area.size.y >= 0){
             area.pos = area.pos + window_area.pos;
             window_area = window_area & area;
         }
         draw = true;
-
+        }
         if(draw) {
             layer->DrawTo(back_buffer_, window_area);
         }
@@ -224,6 +222,7 @@ void ActiveLayer::Activate(unsigned int layer_id){
 }
 
 ActiveLayer* active_layer;
+std::map<unsigned int, uint64_t>* layer_task_map;
 
 void InitializeLayer() {
     const auto screen_size = ScreenSize();
@@ -260,6 +259,8 @@ void InitializeLayer() {
 
     
     active_layer = new ActiveLayer{*layer_manager};
+    
+    layer_task_map = new std::map<unsigned int, uint64_t>;
 }
 
 void ProcessLayerMessage(const Message& msg) {
@@ -281,14 +282,3 @@ void ProcessLayerMessage(const Message& msg) {
     }
 }
 
-constexpr Message MakeLayerMessage(
-    uint64_t task_id, unsigned int layer_id, LayerOperation op, const Rectangle<int> & area){
-        Message msg{Message::kLayer, task_id};
-        msg.arg.layer.layer_id = layer_id;
-        msg.arg.layer.op = op;
-        msg.arg.layer.x = area.pos.x;
-        msg.arg.layer.y = area.pos.y;
-        msg.arg.layer.w = area.size.x;
-        msg.arg.layer.h = area.size.y;
-        return msg;
-    }
