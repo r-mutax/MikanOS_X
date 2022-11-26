@@ -45,7 +45,8 @@ namespace {
     const int kRShiftBitMask    = 0b00100000u;
     const int kRAltBitMask      = 0b01000000u;
     const int kRGUIBitMask      = 0b10000000u;
-}
+
+} // namespace
 
 void InitializeKeyboard(){
 

@@ -26,7 +26,7 @@ void SetCodeSegment(SegmentDescriptor& desc,
     desc.bits.present = 1;
     desc.bits.available = 0;
     desc.bits.long_mode = 1;
-    desc.bits.default_operation_size = 0;
+  desc.bits.default_operation_size = 0; // should be 0 when long_mode == 1
     desc.bits.granularity = 1;
 }
 
@@ -37,7 +37,7 @@ void SetDataSegment(SegmentDescriptor& desc,
                     uint32_t limit){
     SetCodeSegment(desc, type, descriptor_privilege_level, base, limit);
     desc.bits.long_mode = 0;
-    desc.bits.default_operation_size = 1;
+  desc.bits.default_operation_size = 1; // 32-bit stack segment
 }
 
 void SetupSegments() {

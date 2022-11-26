@@ -25,7 +25,7 @@ WithError<FrameID> BitmapMemoryManager::Allocate(size_t num_frames) {
             MarkAllocated(FrameID{start_frame_id}, num_frames);
             return {
                 FrameID{start_frame_id},
-                MAKE_ERROR(Error::kSuccess)
+                MAKE_ERROR(Error::kSuccess),
             };
         }
 

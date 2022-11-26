@@ -1,7 +1,7 @@
 #include "timer.hpp"
 
-#include "interrupt.hpp"
 #include "acpi.hpp"
+#include "interrupt.hpp"
 #include "task.hpp"
 
 namespace {
@@ -15,19 +15,19 @@ namespace {
 void InitializeLAPICTimer(){
     timer_manager = new TimerManager;
 
-    divide_config = 0b1011;
-    lvt_timer = 0b001 << 16;
+  divide_config = 0b1011; // divide 1:1
+  lvt_timer = 0b001 << 16; // masked, one-shot
 
     StartLAPICTimer();
     acpi::WaitMilliseconds(100);
     const auto elapsed = LAPICTimerElapsed();
     StopLAPICTimer();
 
-    lapic_taimer_freq = static_cast<unsigned long>(elapsed) * 10;
+  lapic_timer_freq = static_cast<unsigned long>(elapsed) * 10;
 
-    divide_config = 0b1011;
-    lvt_timer = (0b010 << 16) | InterruptVector::kLAPICTimer;
-    initial_count = lapic_taimer_freq / kTimerFreq;
+  divide_config = 0b1011; // divide 1:1
+  lvt_timer = (0b010 << 16) | InterruptVector::kLAPICTimer; // not-masked, periodic
+  initial_count = lapic_timer_freq / kTimerFreq;
 }
 
 void StartLAPICTimer() {
@@ -84,7 +84,7 @@ bool TimerManager::Tick(){
 }
 
 TimerManager* timer_manager;
-unsigned long lapic_taimer_freq;
+unsigned long lapic_timer_freq;
 
 void LAPICTimerOnInterrupt(){
     const bool task_timer_timeout = timer_manager->Tick();

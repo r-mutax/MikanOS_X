@@ -54,4 +54,5 @@ namespace acpi {
 
     void WaitMilliseconds(unsigned long msec);
     void Initialize(const RSDP& rsdp);
-}
+
+} // namespace acpi

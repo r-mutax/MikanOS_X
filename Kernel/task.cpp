@@ -16,7 +16,7 @@ namespace {
     void TaskIdle(uint64_t task_id, int64_t data){
         while(true) __asm__("hlt");
     }
-}
+} // namespace
 
 Task::Task(uint64_t id) : id_{id}, msgs_{} {
 
@@ -56,14 +56,14 @@ Task& Task::Sleep(){
     return *this;
 }
 
-Task& Task::WakeUp() {
-    task_manager->WakeUp(this);
+Task& Task::Wakeup() {
+  task_manager->Wakeup(this);
     return *this;
 }
 
 void Task::SendMessage(const Message& msg){
     msgs_.push_back(msg);
-    WakeUp();
+  Wakeup();
 }
 
 std::optional<Message> Task::ReceiveMessage(){
@@ -147,7 +147,7 @@ Error TaskManager::Sleep(uint64_t id){
     return MAKE_ERROR(Error::kSuccess);
 }
 
-void TaskManager::WakeUp(Task* task, int level){
+void TaskManager::Wakeup(Task* task, int level) {
     if(task->Running()){
         ChangeLevelRunning(task, level);
         return;
@@ -167,14 +167,14 @@ void TaskManager::WakeUp(Task* task, int level){
     return;
 }
 
-Error TaskManager::WakeUp(uint64_t id,int level){
+Error TaskManager::Wakeup(uint64_t id, int level) {
     auto it = std::find_if(tasks_.begin(), tasks_.end(), 
                         [id](const auto& t){ return t->ID() == id; });
     if ( it == tasks_.end()){
         return MAKE_ERROR(Error::kNoSuchTask);
     }
 
-    WakeUp(it->get(), level);
+  Wakeup(it->get(), level);
     return MAKE_ERROR(Error::kSuccess);
 }
 
