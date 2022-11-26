@@ -1,3 +1,9 @@
+/**
+ * @file interrupt.hpp
+ *
+ * 割り込み用のプログラムを集めたファイル．
+ */
+
 #pragma once
 
 #include <array>
@@ -38,7 +44,7 @@ constexpr InterruptDescriptorAttribute MakeIDTAttr (
     uint8_t descriptor_privilege_level,
     bool present = true,
     uint8_t interrupt_stack_table = 0) {
-    
+
     InterruptDescriptorAttribute attr{};
     attr.bits.interrupt_stack_table = interrupt_stack_table;
     attr.bits.type = type;

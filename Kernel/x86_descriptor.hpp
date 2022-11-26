@@ -10,5 +10,5 @@ enum class DescriptorType {
     kTrapGate       = 15,
 
     kReadWrite      = 2,
-    kExecuteRead    = 10  
+    kExecuteRead    = 10  ,
 };

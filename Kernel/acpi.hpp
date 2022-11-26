@@ -1,3 +1,9 @@
+/**
+ * @file acpi.hpp
+ *
+ * ACPI テーブル定義や操作用プログラムを集めたファイル。
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -54,4 +60,5 @@ namespace acpi {
 
     void WaitMilliseconds(unsigned long msec);
     void Initialize(const RSDP& rsdp);
-}
+
+} // namespace acpi

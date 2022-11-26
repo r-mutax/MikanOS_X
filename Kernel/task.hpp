@@ -12,11 +12,11 @@
 #include "message.hpp"
 
 struct TaskContext {
-    uint64_t cr3, rip, rflags, reserved1;
-    uint64_t cs, ss, fs, gs;
-    uint64_t rax, rbx, rcx, rdx, rdi, rsi, rsp, rbp;
-    uint64_t r8, r9, r10, r11, r12,r13, r14, r15;
-    std::array<uint8_t, 512> fxsave_area;
+  uint64_t cr3, rip, rflags, reserved1; // offset 0x00
+  uint64_t cs, ss, fs, gs; // offset 0x20
+  uint64_t rax, rbx, rcx, rdx, rdi, rsi, rsp, rbp; // offset 0x40
+  uint64_t r8, r9, r10, r11, r12, r13, r14, r15; // offset 0x80
+  std::array<uint8_t, 512> fxsave_area; // offset 0xc0
 } __attribute__((packed));
 
 
@@ -34,7 +34,7 @@ class Task {
         TaskContext& Context();
         uint64_t ID() const;
         Task& Sleep();
-        Task& WakeUp();
+        Task& Wakeup();
         void SendMessage(const Message& msg);
         std::optional<Message> ReceiveMessage();
 
@@ -66,8 +66,8 @@ class TaskManager {
 
         void Sleep(Task* task);
         Error Sleep(uint64_t id);
-        void WakeUp(Task* task, int level = -1);
-        Error WakeUp(uint64_t id, int level = -1);
+        void Wakeup(Task* task, int level = -1);
+        Error Wakeup(uint64_t id, int level = -1);
         Error SendMessage(uint64_t id, const Message& msg);
         Task& CurrentTask();
     private:
