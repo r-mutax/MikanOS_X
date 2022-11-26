@@ -1,9 +1,3 @@
-/**
- * @file acpi.hpp
- *
- * ACPI テーブル定義や操作用プログラムを集めたファイル。
- */
-
 #pragma once
 
 #include <cstdint>
