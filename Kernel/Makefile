@@ -22,6 +22,7 @@ OBJS = 	main.o \
 		task.o \
 		frame_buffer.o \
 		terminal.o \
+		fat.o \
 		usb/memory.o \
 		usb/device.o \
 		usb/xhci/ring.o \
