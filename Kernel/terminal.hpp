@@ -30,6 +30,7 @@ class Terminal {
         void Scroll1();
 
         void Print(const char* s);
+        void Print(char c);
         void ExecuteLine();
 
         std::deque<std::array<char, kLineMax>> cmd_history_{};
