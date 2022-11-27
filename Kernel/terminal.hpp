@@ -31,6 +31,10 @@ class Terminal {
 
         void Print(const char* s);
         void ExecuteLine();
+
+        std::deque<std::array<char, kLineMax>> cmd_history_{};
+        int cmd_history_index_{-1};
+        Rectangle<int> HistoryUpDown(int direction);
 };
 
 void TaskTerminal(uint64_t task_id, int64_t data);
