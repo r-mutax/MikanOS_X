@@ -9,3 +9,6 @@ Kernel/usb/xhci/*.o
 Kernel/usb/xhci/*.d
 tools/hankaku.o
 tools/hankaku.bin
+apps/onlyhlt/onlyhlt
+disk.img
+mnt/EFI/BOOT/BOOTX64.EFI
