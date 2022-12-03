@@ -9,15 +9,35 @@
 #include "fat.hpp"
 #include "asmfunc.h"
 #include "elf.hpp"
-#include "paging.hpp"
 #include "memory_manager.hpp"
+#include "paging.hpp"
 
 #include "logger.hpp"
 
 namespace {
-    std::vector<char*> MakeArgVector(char* command, char* first_arg){
-        std::vector<char*> argv;
-        argv.push_back(command);
+    WithError<int> MakeArgVector(char* command, char* first_arg,
+        char** argv, int argv_len, char* argbuf, int argbuf_len){
+        int argc = 0;
+        int argbuf_index = 0;
+
+        auto push_to_argv = [&](const char* s){
+            if(argc >= argv_len || argbuf_index >= argbuf_len){
+                return MAKE_ERROR(Error::kFull);
+            }
+
+            argv[argc] = &argbuf[argbuf_index];
+            ++argc;
+            strcpy(&argbuf[argbuf_index], s);
+            argbuf_index += strlen(s) + 1;
+            return MAKE_ERROR(Error::kSuccess);
+        };
+
+        if(auto err = push_to_argv(command)){
+            return { argc, err };
+        }
+        if(!first_arg){
+            return {argc, MAKE_ERROR(Error::kSuccess)};
+        }
 
         char* p = first_arg;
         while(true){
@@ -28,20 +48,25 @@ namespace {
             if(p[0] == 0){
                 break;
             }
-            argv.push_back(p);
+            const char* arg = p;
 
             while(p[0] != 0 && !isspace(p[0])){
                 ++p;
             }
 
-            if(p[0] == 0) {
+            const bool is_end = p[0] == 0;
+            p[0] = 0;
+            if(auto err = push_to_argv(arg)){
+                return {argc, err};
+            }
+
+            if(is_end) {
                 break;
             }
-            p[0] = 0;
             ++p;
         }
 
-        return argv;
+        return { argc, MAKE_ERROR(Error::kSuccess)};
     }
 
     Elf64_Phdr* GetProgramHeader(Elf64_Ehdr* ehdr){
@@ -97,6 +122,7 @@ namespace {
                     return { num_4kpages, err}; 
                 }
                 page_map[entry_index].bits.writable = 1;
+                page_map[entry_index].bits.user = 1;
 
                 if(page_map_level == 1){
                     --num_4kpages;
@@ -114,7 +140,7 @@ namespace {
                 }
 
                 addr.SetPart(page_map_level, entry_index + 1);
-                for(int level = page_map_level - 1; level > 1; --level){
+                for(int level = page_map_level - 1; level >= 1; --level){
                     addr.SetPart(level, 0);
                 }
             }
@@ -123,8 +149,8 @@ namespace {
         }
 
     Error SetupPageMaps(LinearAddress4Level addr, size_t num_4kpages) {
-        auto pml14_table = reinterpret_cast<PageMapEntry*>(GetCR3());
-        return SetupPageMap(pml14_table, 4, addr, num_4kpages).error;
+        auto pml4_table = reinterpret_cast<PageMapEntry*>(GetCR3());
+        return SetupPageMap(pml4_table, 4, addr, num_4kpages).error;
     }
 
     Error CopyLoadSegments(Elf64_Ehdr* ehdr) {
@@ -248,7 +274,7 @@ Rectangle<int> Terminal::InputKey(uint8_t modifier, uint8_t keycode, char ascii)
             cmd_history_.push_front(linebuf_);
         }
         linebuf_index_ = 0;
-        cmd_history_index_ = 0;
+        cmd_history_index_ = -1;
         cursor_.x = 0;
         Log(kWarn, "line: %s\n", &linebuf_[0]);
         if(cursor_.y < kRows - 1){
@@ -269,10 +295,6 @@ Rectangle<int> Terminal::InputKey(uint8_t modifier, uint8_t keycode, char ascii)
                 --linebuf_index_;
             }
         }
-    } else if(keycode == 0x51){   // down arrow
-        draw_area = HistoryUpDown(-1);
-    } else if(keycode == 0x52){   // down up
-        draw_area = HistoryUpDown(1);
     } else if(ascii != 0){
         if(cursor_.x < kColumns - 1&& linebuf_index_ < kLineMax - 1) {
             linebuf_[linebuf_index_] = ascii;
@@ -280,6 +302,10 @@ Rectangle<int> Terminal::InputKey(uint8_t modifier, uint8_t keycode, char ascii)
             WriteAscii(*window_->Writer(), CalcCursorPos(), ascii, {255, 255, 255});
             ++cursor_.x;
         }
+    } else if(keycode == 0x51){   // down arrow
+        draw_area = HistoryUpDown(-1);
+    } else if(keycode == 0x52){   // down up
+        draw_area = HistoryUpDown(1);
     }
 
     DrawCursor(true);
@@ -296,38 +322,6 @@ void Terminal::Scroll1(){
                     {4, 4 + 16 * cursor_.y}, {8 * kColumns, 16}, {0, 0, 0});
 }
 
-void Terminal::Print(const char* s){
-    DrawCursor(false);
-
-    while(*s){
-        Print(*s);
-        ++s;
-    }
-
-    DrawCursor(true);
-}
-
-void Terminal::Print(char c){
-    auto newline = [this](){
-        cursor_.x = 0;
-        if(cursor_.y < kRows - 1){
-            ++cursor_.y;
-        } else {
-            Scroll1();
-        }
-    };
-
-    if(c == '\n'){
-        newline();
-    } else {
-        WriteAscii(*window_->Writer(), CalcCursorPos(), c, {255, 255, 255});
-        if(cursor_.x == kColumns - 1){
-            newline();
-        } else {
-            ++cursor_.x;
-        }
-    }
-}
 
 void Terminal::ExecuteLine(){
     char* command = &linebuf_[0];
@@ -419,21 +413,8 @@ void Terminal::ExecuteLine(){
 }
 
 Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command, char* first_arg){
-    auto cluster = file_entry.FirstCluster();
-    auto remain_bytes = file_entry.file_size;
-
-    std::vector<uint8_t> file_buf(remain_bytes);
-    auto p = &file_buf[0];
-
-    while(cluster != 0 && cluster != fat::kEndOfClusterchain){
-        const auto copy_bytes = fat::bytes_per_cluster < remain_bytes ?
-            fat::bytes_per_cluster : remain_bytes;
-        memcpy(p, fat::GetSectorByCluster<uint8_t>(cluster), copy_bytes);
-
-        remain_bytes -= copy_bytes;
-        p += copy_bytes;
-        cluster = fat::NextCluster(cluster);
-    }
+    std::vector<uint8_t> file_buf(file_entry.file_size);
+    fat::LoadFile(&file_buf[0], file_buf.size(), file_entry);
 
     auto elf_header = reinterpret_cast<Elf64_Ehdr*>(&file_buf[0]);
     if(memcmp(elf_header->e_ident, "\x7f" "ELF", 4) != 0){
@@ -443,19 +424,36 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
         return MAKE_ERROR(Error::kSuccess);
     }
 
-    auto argv = MakeArgVector(command, first_arg);
     if(auto err = LoadELF(elf_header)){
         return err;
     }
 
-    auto entry_addr = elf_header->e_entry;
-    using Func = int (int, char**);
-    auto f = reinterpret_cast<Func*>(entry_addr);
-    auto ret = f(argv.size(), &argv[0]);
+    LinearAddress4Level args_frame_addr{0xffff'ffff'ffff'f000};
+    if(auto err = SetupPageMaps(args_frame_addr, 1)){
+        return err;
+    }
 
-    char s[64];
-    sprintf(s, "app exited. ret = %d\n", ret);
-    Print(s);
+    auto argv = reinterpret_cast<char**>(args_frame_addr.value);
+    int argv_len = 32;
+    auto argbuf = reinterpret_cast<char*>(args_frame_addr.value + sizeof(char**) * argv_len);
+    int argbuf_len = 4096 - sizeof(char**) * argv_len;
+    auto argc = MakeArgVector(command, first_arg, argv, argv_len, argbuf, argbuf_len);
+    if(argc.error) {
+        return argc.error;
+    }
+
+    LinearAddress4Level stack_frame_addr{0xffff'ffff'ffff'e000};
+    if(auto err = SetupPageMaps(stack_frame_addr, 1)){
+        return err;
+    }
+
+    auto entry_addr = elf_header->e_entry;
+    CallApp(argc.value, argv, 3 << 3 | 3, 4 << 3 | 3, entry_addr,
+        stack_frame_addr.value + 4096 - 8);
+
+    // char s[64];
+    // sprintf(s, "app exited. ret = %d\n", ret);
+    // Print(s);
 
     const auto addr_first = GetFirstLoadAddress(elf_header);
     if(auto err = CleanPageMaps(LinearAddress4Level{addr_first})){
@@ -465,6 +463,38 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
     return MAKE_ERROR(Error::kSuccess);
 }
 
+void Terminal::Print(char c){
+    auto newline = [this](){
+        cursor_.x = 0;
+        if(cursor_.y < kRows - 1){
+            ++cursor_.y;
+        } else {
+            Scroll1();
+        }
+    };
+
+    if(c == '\n'){
+        newline();
+    } else {
+        WriteAscii(*window_->Writer(), CalcCursorPos(), c, {255, 255, 255});
+        if(cursor_.x == kColumns - 1){
+            newline();
+        } else {
+            ++cursor_.x;
+        }
+    }
+}
+
+void Terminal::Print(const char* s){
+    DrawCursor(false);
+
+    while(*s){
+        Print(*s);
+        ++s;
+    }
+
+    DrawCursor(true);
+}
 Rectangle<int> Terminal::HistoryUpDown(int direction){
     if(direction == 1 && cmd_history_index_ >= 0){
         --cmd_history_index_;

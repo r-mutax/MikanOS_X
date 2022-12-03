@@ -3,7 +3,7 @@
 #include "asmfunc.h"
 
 namespace {
-  std::array<SegmentDescriptor, 3> gdt;
+  std::array<SegmentDescriptor, 5> gdt;
 }
 
 void SetCodeSegment(SegmentDescriptor& desc,
@@ -37,7 +37,7 @@ void SetDataSegment(SegmentDescriptor& desc,
                     uint32_t limit){
     SetCodeSegment(desc, type, descriptor_privilege_level, base, limit);
     desc.bits.long_mode = 0;
-  desc.bits.default_operation_size = 1; // 32-bit stack segment
+    desc.bits.default_operation_size = 1; // 32-bit stack segment
 }
 
 void SetupSegments() {
@@ -48,6 +48,8 @@ void SetupSegments() {
     SetCodeSegment(gdt[1], DescriptorType::kExecuteRead, 0, 0, 0xfffff);
     // 3番目のGDTにはデータセグメントとする。
     SetDataSegment(gdt[2], DescriptorType::kReadWrite, 0, 0, 0xfffff);
+    SetCodeSegment(gdt[3], DescriptorType::kExecuteRead, 3, 0, 0xfffff);
+    SetDataSegment(gdt[4], DescriptorType::kReadWrite, 3, 0, 0xfffff);
     LoadGDT(sizeof(gdt) - 1, reinterpret_cast<uintptr_t>(&gdt[0]));
 }
 
