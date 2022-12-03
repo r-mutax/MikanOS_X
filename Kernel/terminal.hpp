@@ -32,7 +32,7 @@ class Terminal {
 
         void Print(const char* s);
         void Print(char c);
-        void ExecuteFile(const fat::DirectoryEntry& file_entry, char* command, char* first_arg);
+        Error ExecuteFile(const fat::DirectoryEntry& file_entry, char* command, char* first_arg);
         void ExecuteLine();
 
         std::deque<std::array<char, kLineMax>> cmd_history_{};
