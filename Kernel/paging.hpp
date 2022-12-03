@@ -56,7 +56,7 @@ union LinearAddress4Level {
             case 3: parts.pdp = value; break;
             case 4: parts.pml4 = value; break;
         }
-    };
+    }
 };
 
 union PageMapEntry{

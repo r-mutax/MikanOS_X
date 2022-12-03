@@ -30,7 +30,7 @@ namespace fat {
             base[i] = 0;
         }
 
-        memcpy(ext, &entry.name[0], 3);
+        memcpy(ext, &entry.name[8], 3);
         ext[3] = 0;
         for(int i = 2; i >= 0 && ext[i] == 0x20; --i){
             ext[i] = 0;
@@ -45,7 +45,7 @@ namespace fat {
             reinterpret_cast<uintptr_t>(boot_volume_image) + fat_offset);
         
         uint32_t next = fat[cluster];
-        if(next >= 0xffffff8ul){
+        if(next >= 0x0ffffff8ul){
             return kEndOfClusterchain;
         }
         return next;
