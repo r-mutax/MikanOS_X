@@ -1,6 +1,8 @@
 bin/*
 Kernel/*.o
 Kernel/*.d
+Kernel/*.bak
+Kernel/usb/*.bak
 Kernel/usb/*.o
 Kernel/usb/*.d
 Kernel/usb/classdriver/*.o
@@ -14,3 +16,4 @@ mnt/EFI/BOOT/BOOTX64.EFI
 apps/onlyhlt/onlyhlt
 apps/rpn/rpn
 apps/rpn/rpn.o
+apps/rpn/syscall.o

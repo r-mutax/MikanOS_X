@@ -9,13 +9,15 @@ extern "C" {
   uint16_t GetCS(void);
   void LoadIDT(uint16_t limit, uint64_t offset);
   void LoadGDT(uint16_t limit, uint64_t offset);
-  void SetDSAll(uint16_t value);
   void SetCSSS(uint16_t cs, uint16_t ss);
+  void SetDSAll(uint16_t value);
   void SetCR3(uint64_t value);
-  uint64_t GetCR3(void);
+  uint64_t GetCR3();
   void SwitchContext(void* next_ctx, void* current_ctx);
+  void RestoreContext(void* ctx);
   void CallApp(int argc, char** argv, uint16_t cs, uint16_t ss, uint64_t rip, uint64_t rsp);
-  void LoadTR(uint16_t sel);
   void IntHandlerLAPICTimer();
-  void RestoreContext(void* task_context);
+  void LoadTR(uint16_t sel);
+  void WriteMSR(uint32_t msr, uint64_t value);
+  void SyscallEntry(void);
 }
