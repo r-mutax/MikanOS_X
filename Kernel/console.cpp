@@ -1,4 +1,8 @@
-
+/**
+ * @file console.cpp
+ *
+ * コンソール描画のプログラムを集めたファイル．
+ */
 
 #include "console.hpp"
 

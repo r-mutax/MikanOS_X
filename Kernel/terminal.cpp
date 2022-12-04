@@ -227,7 +227,7 @@ namespace {
         const FrameID pdp_frame{pdp_addr / kBytesPerFrame};
         return memory_manager->Free(pdp_frame, 1);
     }
-}
+} //namespace
 
 Terminal::Terminal() {
     window_ = std::make_shared<ToplevelWindow>(
@@ -259,10 +259,12 @@ void Terminal::DrawCursor(bool visible){
 }
 
 Vector2D<int> Terminal::CalcCursorPos() const {
-    return ToplevelWindow::kTopLeftMargin + Vector2D<int>{4 + 8 * cursor_.x, 4 + 16 * cursor_.y};
+    return ToplevelWindow::kTopLeftMargin +
+     Vector2D<int>{4 + 8 * cursor_.x, 4 + 16 * cursor_.y};
 }
 
-Rectangle<int> Terminal::InputKey(uint8_t modifier, uint8_t keycode, char ascii){
+Rectangle<int> Terminal::InputKey(
+    uint8_t modifier, uint8_t keycode, char ascii){
     DrawCursor(false);
 
     Rectangle<int> draw_area{CalcCursorPos(), {8 * 2, 16}};
@@ -276,7 +278,6 @@ Rectangle<int> Terminal::InputKey(uint8_t modifier, uint8_t keycode, char ascii)
         linebuf_index_ = 0;
         cmd_history_index_ = -1;
         cursor_.x = 0;
-        Log(kWarn, "line: %s\n", &linebuf_[0]);
         if(cursor_.y < kRows - 1){
             ++cursor_.y;
         } else {
@@ -337,14 +338,15 @@ void Terminal::ExecuteLine(){
         }
         Print("\n");
     } else if(strcmp(command,"clear") == 0){
-        FillRectangle(*window_->InnerWriter(), {4, 4}, {8 * kColumns, 16 * kRows}, {0, 0, 0});
+        FillRectangle(*window_->InnerWriter(),
+         {4, 4}, {8 * kColumns, 16 * kRows}, {0, 0, 0});
         cursor_.y = 0;
     } else if(strcmp(command,"lspci") == 0){
         char s[64];
         for(int i = 0; i < pci::num_device; ++i){
             const auto& dev = pci::devices[i];
             auto vendor_id = pci::ReadVendorId(dev.bus, dev.device, dev.function);
-            sprintf(s, "%02x:%02x:%d vend=%04x head=%02x class=%02x.%02x.%02x\n",
+            sprintf(s, "%02x:%02x.%d vend=%04x head=%02x class=%02x.%02x.%02x\n",
                 dev.bus, dev.device, dev.function, vendor_id, dev.header_type, 
                 dev.class_code.base, dev.class_code.sub, dev.class_code.interface);
             Print(s);
@@ -448,7 +450,7 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
     }
 
     auto entry_addr = elf_header->e_entry;
-    CallApp(argc.value, argv, 3 << 3 | 3, 4 << 3 | 3, entry_addr,
+    CallApp(argc.value, argv, 4 << 3 | 3, 3 << 3 | 3, entry_addr,
         stack_frame_addr.value + 4096 - 8);
 
     // char s[64];
@@ -496,9 +498,9 @@ void Terminal::Print(const char* s){
     DrawCursor(true);
 }
 Rectangle<int> Terminal::HistoryUpDown(int direction){
-    if(direction == 1 && cmd_history_index_ >= 0){
+    if(direction == -1 && cmd_history_index_ >= 0){
         --cmd_history_index_;
-    } else if(direction == -1 && cmd_history_index_ + 1 < cmd_history_.size()){
+    } else if(direction == 1 && cmd_history_index_ + 1 < cmd_history_.size()){
         ++cmd_history_index_;
     }
 
@@ -544,7 +546,8 @@ void TaskTerminal(uint64_t task_id, int64_t data) {
                 {
                     //Log(kWarn, "blink cursor\n");
                     const auto area = terminal->BlinkCursor();
-                    Message msg = MakeLayerMessage(task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
+                    Message msg = MakeLayerMessage(
+                    	task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
                     __asm__("cli");
                     task_manager->SendMessage(1, msg);
                     __asm__("sti");
@@ -555,7 +558,8 @@ void TaskTerminal(uint64_t task_id, int64_t data) {
                     const auto area = terminal->InputKey(msg->arg.keyboard.modifier,
                                                         msg->arg.keyboard.keycode,
                                                         msg->arg.keyboard.ascii);
-                    Message msg = MakeLayerMessage(task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
+                    Message msg = MakeLayerMessage(
+                    	task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
                     __asm__("cli");
                     task_manager->SendMessage(1, msg);
                     __asm__("sti");

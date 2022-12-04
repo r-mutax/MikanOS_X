@@ -40,6 +40,7 @@
 #include "task.hpp"
 #include "terminal.hpp"
 #include "fat.hpp"
+#include "syscall.hpp"
 
 int printk(const char* format, ...) {
     va_list ap;
@@ -156,6 +157,8 @@ extern "C" void KernelMainNewStack(
     timer_manager->AddTimer(Timer{kTimer05Sec, kTextboxCursorTimer});
     bool textbox_cursor_visible = false;
 
+    InitializeSyscall();
+    
     InitializeTask();
     Task& main_task = task_manager->CurrentTask();
     const uint64_t task_terminal_id = task_manager->NewTask()
@@ -166,22 +169,6 @@ extern "C" void KernelMainNewStack(
     usb::xhci::Initialize();
     InitializeKeyboard();
     InitializeMouse();
-
-    // uint8_t* p = reinterpret_cast<uint8_t*>(volume_image);
-    // printk("volume image:\n");
-    // for(int i = 0; i < 16; ++i){
-    //     printk("%04x:", i * 16);
-    //     for(int j = 0; j < 8; ++j){
-    //         printk(" %02x", *p);
-    //         ++p;
-    //     }
-    //     printk(" ");
-    //     for (int j = 0; j < 8; ++j){
-    //         printk(" %02x", *p);
-    //         ++p;
-    //     }
-    //     printk("\n");
-    // }
 
     char str[128];
 

@@ -248,3 +248,42 @@ IntHandlerLAPICTimer:   ;void IntHandlerLAPICTimer();
     mov rsp, rbp
     pop rbp
     iretq
+
+global WriteMSR
+WriteMSR:   ; void WriteMSR(uint32_t msr, uint64_t value);
+    mov rdx, rsi
+    shr rdx, 32
+    mov eax, esi
+    mov ecx, edi
+    wrmsr
+    ret
+
+extern syscall_table
+global SyscallEntry
+SyscallEntry:   ; void SyscallEntry(void);
+
+    ; syscall命令はRIPとRFLAGSをrcx, r11に保存してからここに飛んでくる
+    ; 最後、sysret命令で帰っていくときにrcx, r11をRIP,RFLAGSに復帰させるので、
+    ; ここで覚えておく
+    push rbp
+    push rcx    ; original RIP
+    push r11    ; original RFLAGS
+
+    ; 前述したようにsyscall命令はrcxをRIPの保存に使うので、引数の受け渡しのためにr10にコピーしていた。
+    ; のでもとに戻しておく。
+    mov rcx, r10
+
+    ; eaxがシステムコール番号。0x80000000始まりとして使おうとしているので、MASKしている。
+    and eax, 0x7fffffff
+
+    ; CALL前のRSPの調整、16byteアライメント？させる。
+    mov rbp, rsp
+    and rsp, 0xfffffffffffffff0
+
+    call [syscall_table + 8 * eax]
+
+    mov rsp, rbp
+    pop r11
+    pop rcx
+    pop rbp
+    o64 sysret
