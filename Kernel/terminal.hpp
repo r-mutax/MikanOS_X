@@ -12,14 +12,16 @@ class Terminal {
     public:
         static const int kRows = 15, kColumns = 60;
         static const int kLineMax = 128;
-        Terminal();
+        Terminal(uint64_t task_id);
         unsigned int LayerID() const { return layer_id_; }
         Rectangle<int> BlinkCursor();
         Rectangle<int> InputKey(uint8_t modifier, uint8_t keycode, char ascii);
+        void Print(const char* s, std::optional<size_t> len = std::nullopt);
 
     private:
         std::shared_ptr<ToplevelWindow> window_;
         unsigned int layer_id_;
+        uint64_t task_id_;
 
         Vector2D<int> cursor_{0, 0};
         bool cursor_visible_{false};
@@ -32,7 +34,6 @@ class Terminal {
 
         void ExecuteLine();
         Error ExecuteFile(const fat::DirectoryEntry& file_entry, char* command, char* first_arg);
-        void Print(const char* s);
         void Print(char c);
 
         std::deque<std::array<char, kLineMax>> cmd_history_{};
@@ -41,3 +42,5 @@ class Terminal {
 };
 
 void TaskTerminal(uint64_t task_id, int64_t data);
+
+extern std::map<uint64_t, Terminal*>* terminals;
