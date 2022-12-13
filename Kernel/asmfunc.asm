@@ -1,26 +1,27 @@
 ; asmfunc.asm
 ; 
 ; System V AMD64 Calling Convention
+; Registers: RDI, RSI, RDX, RCX, R8, R9
 
 bits 64
 section .text
 
 global IoOut32 ; void InOut32(int16_t addr, uint32_t data);
 IoOut32:
-    mov dx, di
-    mov eax, esi
+    mov dx, di    ; dx = addr
+    mov eax, esi  ; eax = data
     out dx, eax
     ret
 
 global IoIn32 ; uint32_t IoIn32(uint16_t addr);
 IoIn32:
-    mov dx, di
+    mov dx, di    ; dx = addr
     in eax, dx
     ret
 
 global GetCS    ; uint16_t GetCS(void);
 GetCS:
-    xor eax, eax
+    xor eax, eax  ; also clears upper 32 bits of rax
     mov ax, cs
     ret
 
@@ -30,10 +31,53 @@ LoadIDT:
     mov rbp, rsp
     sub rsp, 10
     mov [rsp], di   ; limit
-    mov [rsp + 2], rsi
+    mov [rsp + 2], rsi  ; offset
     lidt [rsp]
     mov rsp, rbp
     pop rbp
+    ret
+
+global LoadGDT  ; void LoadGDT(uint16_t limit, uint64_t offset);
+LoadGDT:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 10
+    mov [rsp], di  ; limit
+    mov [rsp + 2], rsi  ; offset
+    lgdt [rsp]
+    mov rsp, rbp
+    pop rbp
+    ret
+
+global SetCSSS  ; void SetCSSS(uint16_t cs, uint16_t ss);
+SetCSSS:
+    push rbp
+    mov rbp, rsp
+    mov ss, si
+    mov rax, .next
+    push rdi    ; CS
+    push rax    ; RIP
+    o64 retf
+.next:
+    mov rsp, rbp
+    pop rbp
+    ret
+
+global SetDSAll  ; void SetDSAll(uint16_t value);
+SetDSAll:
+    mov ds, di
+    mov es, di
+    mov fs, di
+    mov gs, di
+    ret
+global SetCR3   ; void SetCR3(uint64_t value);
+SetCR3:
+    mov cr3, rdi
+    ret
+
+global GetCR3   ; uint64_t GetCR3();
+GetCR3:
+    mov rax, cr3
     ret
 
 extern kernel_main_stack
@@ -46,53 +90,9 @@ KernelMain:
 .fin:
     hlt
     jmp .fin
-
-global LoadGDT  ; void LoadGDT(uint16_t limit, uint64_t offset)
-LoadGDT:
-    push rbp
-    mov rbp, rsp
-    sub rsp, 10
-    mov [rsp], di
-    mov [rsp + 2], rsi
-    lgdt [rsp]
-    mov rsp, rbp
-    pop rbp
-    ret
-
-global SetDSAll  ; void SetDSAll(uint16_t value);
-SetDSAll:
-    mov ds, di
-    mov es, di
-    mov fs, di
-    mov gs, di
-    ret
-
-global SetCSSS  ; void SetCSSS(uint16_t cs, uint16_t ss);
-SetCSSS:
-    push rbp
-    mov rbp, rsp
-    mov ss, si
-    mov rax, .next
-    push rdi
-    push rax
-    o64 retf
-.next:
-    mov rsp, rbp
-    pop rbp
-    ret
-
-global SetCR3   ; void SetCR3(uint64_t value);
-SetCR3:
-    mov cr3, rdi
-    ret
-
-global GetCR3   ; uint64_t GetCR3();
-GetCR3:
-    mov rax, cr3;
-    ret
-
-global SwitchContext    ; void SwitchContext(void* next_ctx, void* current_ctx);
-SwitchContext:
+    
+global SwitchContext
+SwitchContext:    ; void SwitchContext(void* next_ctx, void* current_ctx);
     mov [rsi + 0x40], rax
     mov [rsi + 0x48], rbx
     mov [rsi + 0x50], rcx
@@ -101,7 +101,7 @@ SwitchContext:
     mov [rsi + 0x68], rsi
 
     lea rax, [rsp + 8]
-    mov [rsi + 0x70], rax   ; rsp
+    mov [rsi + 0x70], rax   ; RSP
     mov [rsi + 0x78], rbp
 
     mov [rsi + 0x80], r8
@@ -114,7 +114,7 @@ SwitchContext:
     mov [rsi + 0xb8], r15
 
     mov rax, cr3
-    mov [rsi + 0x00], rax   ; cr3
+    mov [rsi + 0x00], rax   ; CR3
     mov rax, [rsp]
     mov [rsi + 0x08], rax   ; RIP
     pushfq
@@ -130,15 +130,16 @@ SwitchContext:
     mov [rsi + 0x38], rdx
 
     fxsave [rsi + 0xc0]
+	; fall through to RestoreContext
 
 global RestoreContext
-RestoreContext:
+RestoreContext:  ; void RestoreContext(void* task_context);
     ; iret用のスタックフレーム
-    push qword [rdi + 0x28]
-    push qword [rdi + 0x70]
-    push qword [rdi + 0x10]
-    push qword [rdi + 0x20]
-    push qword [rdi + 0x08]
+    push qword [rdi + 0x28] ; SS
+    push qword [rdi + 0x70] ; RSP
+    push qword [rdi + 0x10] ; RFLAGS
+    push qword [rdi + 0x20] ; CS
+    push qword [rdi + 0x08] ; RIP
 
     ; コンテキストの復帰
     fxrstor [rdi + 0xc0]
@@ -170,19 +171,23 @@ RestoreContext:
     o64 iret
 
 global CallApp
-CallApp:    ;void CallApp(int argc, char** argv, uint16_t cs, uint16_t ss, uint64_t rip, uint64_t rsp);
+CallApp:    ;int CallApp(int argc, char** argv, uint16_t ss, uint64_t rip, uint64_t rsp, uint64_t* os_stack_ptr);
+    
+    push rbx
     push rbp
-    mov rbp, rsp
-    push rcx    ; SS
-    push r9     ; RSP
-    push rdx    ; CS
-    push r8     ; RIP
+    push r12
+    push r13
+    push r14
+    push r15
+    mov [r9], rsp
+    
+    push rdx
+    push r8
+    add rdx, 8
+    push rdx
+    push rcx
     o64 retf
 
-global LoadTR
-LoadTR:     ;void LoadTR(uint16_t sel);
-    ltr di
-    ret
 
 extern LAPICTimerOnInterrupt
 ; void LAPICTimerOnInterrupt(const TaskContext& ctx_stack);
@@ -249,6 +254,11 @@ IntHandlerLAPICTimer:   ;void IntHandlerLAPICTimer();
     pop rbp
     iretq
 
+global LoadTR
+LoadTR:     ;void LoadTR(uint16_t sel);
+    ltr di
+    ret
+
 global WriteMSR
 WriteMSR:   ; void WriteMSR(uint32_t msr, uint64_t value);
     mov rdx, rsi
@@ -269,6 +279,8 @@ SyscallEntry:   ; void SyscallEntry(void);
     push rcx    ; original RIP
     push r11    ; original RFLAGS
 
+    push rax
+
     ; 前述したようにsyscall命令はrcxをRIPの保存に使うので、引数の受け渡しのためにr10にコピーしていた。
     ; のでもとに戻しておく。
     mov rcx, r10
@@ -283,7 +295,24 @@ SyscallEntry:   ; void SyscallEntry(void);
     call [syscall_table + 8 * eax]
 
     mov rsp, rbp
+    
+    pop rsi
+    cmp esi, 0x80000002
+    je .exit
+
     pop r11
     pop rcx
     pop rbp
     o64 sysret
+.exit:
+    mov rsp, rax
+    mov eax, edx
+
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop rbp
+    pop rbx
+
+    ret
