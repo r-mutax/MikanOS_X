@@ -16,4 +16,7 @@ mnt/EFI/BOOT/BOOTX64.EFI
 apps/onlyhlt/onlyhlt
 apps/rpn/rpn
 apps/rpn/rpn.o
-apps/rpn/syscall.o
+apps/large/large
+apps/large/large.o
+apps/syscall.o
+apps/newlib_support.o
