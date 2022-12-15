@@ -58,7 +58,7 @@ clean:
 	rm -rf usb/xhci/.*.d
 
 $(TARGET): $(OBJS) Makefile
-	ld.lld $(LDFLAGS) -o $(TARGET_DIR)/kernel.elf $(OBJS) ~/workspace/MikanOS_X/resource/hankaku.o -lc -lc++ -lc++abi
+	ld.lld $(LDFLAGS) -o $(TARGET_DIR)/kernel.elf $(OBJS) ~/workspace/MikanOS_X/resource/hankaku.o -lc -lc++ -lc++abi -lm
 
 %.o:%.cpp Makefile
 	clang++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
