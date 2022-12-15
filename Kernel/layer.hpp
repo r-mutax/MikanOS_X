@@ -8,6 +8,7 @@
 #include "window.hpp"
 #include "message.hpp"
 
+
 class Layer {
     public:
         Layer(unsigned int id = 0);
@@ -46,6 +47,7 @@ class LayerManager {
         Layer* FindLayerByPosition(Vector2D<int> pos, unsigned int exclude_id) const;
         Layer* FindLayer(unsigned int id);
         int GetHeight(unsigned int id);
+        void RemoveLayer(unsigned int id);
     private:
         FrameBuffer* screen_{nullptr};
         mutable FrameBuffer back_buffer_{};

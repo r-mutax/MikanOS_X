@@ -4,6 +4,14 @@
 #include "console.hpp"
 #include "logger.hpp"
 
+namespace {
+    template<class T, class U>
+    void EraseIf(T& c, const U& pred){
+        auto it = std::remove_if(c.begin(), c.end(), pred);
+        c.erase(it, c.end());
+    }
+}
+
 Layer::Layer(unsigned int id) : id_{id}{
 }
 
@@ -185,6 +193,15 @@ int LayerManager::GetHeight(unsigned int id) {
         }
     }
     return -1;
+}
+
+void LayerManager::RemoveLayer(unsigned int id){
+    Hide(id);
+
+    auto pred = [id](const std::unique_ptr<Layer>& elem){
+        return elem->ID() == id;
+    };
+    EraseIf(layers_, pred);
 }
 
 namespace {
