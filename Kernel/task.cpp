@@ -233,6 +233,11 @@ Task* TaskManager::RotateCurrentRunQueue(bool current_sleep){
 }
 TaskManager* task_manager;
 
+__attribute__((no_caller_saved_registers))
+extern "C" uint64_t GetCurrentTaskOSStackPointer(){
+    return task_manager->CurrentTask().OSStackPointer();
+}
+
 void InitializeTask() {
     task_manager = new TaskManager;
 

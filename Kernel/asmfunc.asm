@@ -268,6 +268,7 @@ WriteMSR:   ; void WriteMSR(uint32_t msr, uint64_t value);
     wrmsr
     ret
 
+extern GetCurrentTaskOSStackPointer
 extern syscall_table
 global SyscallEntry
 SyscallEntry:   ; void SyscallEntry(void);
@@ -290,6 +291,20 @@ SyscallEntry:   ; void SyscallEntry(void);
 
     ; CALL前のRSPの調整、16byteアライメント？させる。
     mov rbp, rsp
+    and rsp, 0xfffffffffffffff0
+    push rax
+    push rdx
+    cli
+    call GetCurrentTaskOSStackPointer
+    sti
+    mov rdx, [rsp + 0]
+    mov [rax - 16], rdx
+    mov rdx, [rsp + 8]
+    mov [rax - 8], rdx
+    
+    lea rsp, [rax - 16]
+    pop rdx
+    pop rax
     and rsp, 0xfffffffffffffff0
 
     call [syscall_table + 8 * eax]
