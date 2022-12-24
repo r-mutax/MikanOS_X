@@ -13,14 +13,15 @@
 #include "terminal.hpp"
 #include "font.hpp"
 #include "timer.hpp"
-#include "app_event.hpp"
 #include "keyboard.hpp"
+#include "app_event.hpp"
 
 namespace syscall {
     struct Result {
         uint64_t value;
         int error;
     };
+
 #define SYSCALL(name) \
     Result name( \
         uint64_t arg1, uint64_t arg2, uint64_t arg3, \
@@ -30,7 +31,6 @@ namespace syscall {
         if(arg1 != kError && arg1 != kWarn && arg1 != kInfo && arg1 != kDebug){
             return {0, EPERM};
         }
-
         const char* s = reinterpret_cast<const char*>(arg2);
         const auto len = strlen(s);
         if(len > 1024){
@@ -179,10 +179,8 @@ namespace syscall {
                         win.Writer()->Write({x, y}, ToColor(color));
                     }
                 }
-                
                 return Result { 0, 0 };
-            }, arg1, arg2, arg3, arg4, arg5, arg6
-        );
+            }, arg1, arg2, arg3, arg4, arg5, arg6);
     }
 
     SYSCALL(CloseWindow){
@@ -233,8 +231,8 @@ namespace syscall {
 
             switch(msg->type){
                 case Message::kKeyPush:
-                    if(msg->arg.keyboard.keycode == 20 /* Q key */
-                        && msg->arg.keyboard.modifier & (kLControlBitMask | kRAltBitMask )){
+                    if(msg->arg.keyboard.keycode == 20 && /* Q key */
+                        msg->arg.keyboard.modifier & (kLControlBitMask | kRControlBitMask )){
                         app_events[i].type = AppEvent::kQuit;
                         ++i;
                     }
@@ -246,6 +244,14 @@ namespace syscall {
                     app_events[i].arg.mouse_move.dx = msg->arg.mouse_move.dx;
                     app_events[i].arg.mouse_move.dy = msg->arg.mouse_move.dy;
                     app_events[i].arg.mouse_move.buttons = msg->arg.mouse_move.buttons;
+                    ++i;
+                    break;
+                case Message::kMouseButton:
+                    app_events[i].type = AppEvent::kMouseButton;
+                    app_events[i].arg.mouse_button.x = msg->arg.mouse_button.x;
+                    app_events[i].arg.mouse_button.y = msg->arg.mouse_button.y;
+                    app_events[i].arg.mouse_button.press = msg->arg.mouse_button.press;
+                    app_events[i].arg.mouse_button.button = msg->arg.mouse_button.button;
                     ++i;
                     break;
                 default:
@@ -261,7 +267,7 @@ namespace syscall {
 using SyscallFuncType = syscall::Result (uint64_t, uint64_t, uint64_t,
                                          uint64_t, uint64_t, uint64_t);
 
-extern "C" std::array<SyscallFuncType*, 11> syscall_table{
+extern "C" std::array<SyscallFuncType*, 0xb> syscall_table{
     /* 0x00 */  syscall::LogString,
     /* 0x01 */  syscall::PutString,
     /* 0x02 */  syscall::Exit,
