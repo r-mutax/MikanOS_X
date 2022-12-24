@@ -29,7 +29,7 @@ extern "C" void main(int argc, char** argv){
         SyscallWinFillRectangle(layer_id | LAYER_NO_REDRAW,
                                  4 + x, 24 + y, 2, 2, 0xfff100);
     }
-    SyscallWinReDraw(layer_id);
+    SyscallWinRedraw(layer_id);
 
     auto tick_end = SyscallGetCurrentTick();
     printf("%d stars in %lu ms.\n", num_stars, (tick_end.value - tick_start) * 1000 / timer_freq);
