@@ -216,10 +216,6 @@ extern "C" void KernelMainNewStack(
                     textbox_cursor_visible = !textbox_cursor_visible;
                     DrawTextCursor(textbox_cursor_visible);
                     layer_manager->Draw(text_window_layer_id);
-
-                    __asm__("cli");
-                    task_manager->SendMessage(task_terminal_id, *msg);
-                    __asm__("sti");
                 }                
                 break;
             case Message::kKeyPush:
@@ -229,7 +225,6 @@ extern "C" void KernelMainNewStack(
                     }
                 } else if (msg->arg.keyboard.press &&
                             msg->arg.keyboard.keycode == 59 /* F2 */){
-                                printk("here");
                     task_manager->NewTask()
                         .InitContext(TaskTerminal, 0)
                         .Wakeup();
