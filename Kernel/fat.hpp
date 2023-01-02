@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cctype>
+#include <utility>
 
 namespace fat{
     struct BPB {
@@ -78,11 +79,12 @@ namespace fat{
 
     void ReadName(const DirectoryEntry& entry, char* base, char* ext);
 
+    void FormatName(const DirectoryEntry& entry, char* dest);
     static const unsigned long kEndOfClusterchain = 0x0ffffffflu;
 
     unsigned long NextCluster(unsigned long cluster);
 
-    DirectoryEntry* Findfile(const char* name, unsigned long directory_cluster = 0);
+    std::pair<DirectoryEntry*, bool> Findfile(const char* name, unsigned long directory_cluster = 0);
     bool NameIsEqual(const DirectoryEntry& entry, const char* name);
 
     size_t LoadFile(void* buf, size_t len, const DirectoryEntry& entry);
