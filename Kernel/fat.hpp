@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "file.hpp"
+#include "error.hpp"
 
 namespace fat{
     struct BPB {
@@ -90,6 +91,8 @@ namespace fat{
     bool NameIsEqual(const DirectoryEntry& entry, const char* name);
 
     size_t LoadFile(void* buf, size_t len, const DirectoryEntry& entry);
+    void SetFileName(DirectoryEntry& entry, const char* name);
+    WithError<DirectoryEntry*> CreateFile(const char* path);
 
     class FileDescriptor : public ::FileDescriptor{
         public:
