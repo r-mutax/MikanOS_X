@@ -98,7 +98,7 @@ Task& TaskManager::NewTask() {
     return *tasks_.emplace_back(new Task {latest_id_});
 }
 
-std::vector<std::unique_ptr<fat::FileDescriptor>>& Task::Files(){
+std::vector<std::unique_ptr<::FileDescriptor>>& Task::Files(){
     return files_;
 }
 
