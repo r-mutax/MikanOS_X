@@ -324,19 +324,23 @@ namespace syscall {
             return { 0, 0 };
         }
 
-        if((flags & O_ACCMODE) == O_WRONLY){
-            return {0, EINVAL};
-        }
+        auto [ file, post_slash ] = fat::Findfile(path);
+        if(file == nullptr){
 
-        auto [dir, post_slash] = fat::Findfile(path);
-        if(dir == nullptr){
-            return {0, ENOENT};
-        } else if(dir->attr != fat::Attribute::kDirectory && post_slash) {
+            if((flags & O_CREAT) == 0){
+                return {0, ENOENT};
+            }
+            auto [new_file, err] = fat::CreateFile(path);
+            if(err){
+                return {0, err};
+            }
+            file = new_file;
+        } else if(file->attr != fat::Attribute::kDirectory && post_slash){
             return {0, ENOENT};
         }
 
         size_t fd = AllocateFD(task);
-        task.Files()[fd] = std::make_unique<fat::FileDescriptor>(*dir);
+        task.Files()[fd] = std::make_unique<fat::FileDescriptor>(*file);
         return {fd, 0};
     }
 
