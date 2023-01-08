@@ -79,6 +79,21 @@ std::optional<Message> Task::ReceiveMessage(){
     return m;
 }
 
+uint64_t Task::DPagingBegin() const {
+    return dpaging_begin_;
+}
+
+void Task::SetDPagingBegin(uint64_t v){
+    dpaging_begin_ = v;
+}
+
+uint64_t Task::DPagingEnd() const {
+    return dpaging_end_;
+}
+
+void Task::SetDPagingEnd(uint64_t v){
+    dpaging_end_ = v;
+}
 
 TaskManager::TaskManager() {
     Task& task = NewTask()
