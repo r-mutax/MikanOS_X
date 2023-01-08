@@ -21,6 +21,10 @@ struct TaskContext {
   std::array<uint8_t, 512> fxsave_area; // offset 0xc0
 } __attribute__((packed));
 
+struct FileMapping {
+    int fd;
+    uint64_t vaddr_begin, vaddr_end;
+};
 
 using TaskFunc = void (uint64_t, int64_t);
 
@@ -45,6 +49,9 @@ class Task {
         void SetDPagingBegin(uint64_t v);
         uint64_t DPagingEnd() const;
         void SetDPagingEnd(uint64_t v);
+        uint64_t FileMapEnd() const;
+        void SetFileMapEnd(uint64_t v);
+        std::vector<FileMapping>& FileMaps();
 
         int Level() const { return level_; }
         bool Running() const { return running_; }
@@ -59,6 +66,8 @@ class Task {
         std::vector<std::unique_ptr<::FileDescriptor>> files_{};
         uint64_t dpaging_begin_{0};
         uint64_t dpaging_end_{0};
+        uint64_t file_map_end_{0};
+        std::vector<FileMapping> file_maps_{};
 
         Task& SetLevel(int level) { level_ = level; return *this; }
         Task& SetRunning(bool running) { running_ = running; return *this; }

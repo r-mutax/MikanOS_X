@@ -461,6 +461,8 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
     const uint64_t elf_next_page = (elf_last_addr + 4095) & 0xffff'ffff'ffff'f000;
     task.SetDPagingBegin(elf_next_page);
     task.SetDPagingEnd(elf_next_page);
+
+    task.SetFileMapEnd(0xffff'ffff'ffff'e000);
     
     auto entry_addr = elf_header->e_entry;
     int ret = CallApp(argc.value, argv, 3 << 3 | 3, entry_addr,
@@ -468,6 +470,7 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry& file_entry, char* command
         &task.OSStackPointer());
 
     task.Files().clear();
+    task.FileMaps().clear();
 
     char s[64];
     sprintf(s, "app exited. ret = %d\n", ret);
@@ -600,6 +603,10 @@ size_t TerminalFileDescriptor::Read(void* buf, size_t len){
 size_t TerminalFileDescriptor::Write(const void* buf, size_t len){
     term_.Print(reinterpret_cast<const char*>(buf), len);
     return len;
+}
+
+size_t TerminalFileDescriptor::Load(void* buf, size_t len, size_t offset){
+    return 0;
 }
 
 std::map<uint64_t, Terminal*>* terminals;

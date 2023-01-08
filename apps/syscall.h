@@ -36,6 +36,7 @@ extern "C"{
     struct SyscallResult SyscallOpenFile(const char* path, int flags);
     struct SyscallResult SyscallReadFile(int fd, void* buf, size_t count);
     struct SyscallResult SyscallDemandPages(size_t pages, const int flags);
+    struct SyscallResult SyscallMapFile(const int fd, size_t* file_size, const int flags);
 #ifdef __cplusplus
 }
 #endif
