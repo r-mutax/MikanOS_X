@@ -1,5 +1,6 @@
 #include "memory_manager.hpp"
 
+#include <bitset>
 #include "logger.hpp"
 
 BitmapMemoryManager::BitmapMemoryManager()
@@ -68,6 +69,15 @@ void BitmapMemoryManager::SetBit(FrameID frame, bool allocated) {
     } else {
         alloc_map_[line_index] &= ~(static_cast<MapLineType>(1) << bit_index);
     }
+}
+
+MemoryStat BitmapMemoryManager::Stat() const {
+    size_t sum = 0;
+    for (int i = range_begin_.ID() / kBitsPerMapLine;
+            i < range_end_.ID() / kBitsPerMapLine; ++i){
+        sum += std::bitset<kBitsPerMapLine>(alloc_map_[i]).count();
+    }
+    return {sum, range_end_.ID() - range_begin_.ID()};
 }
 
 extern "C" caddr_t program_break, program_break_end;
