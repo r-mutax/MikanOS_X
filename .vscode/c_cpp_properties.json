@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "~/edk2/MdePkg/Include/**",
                 "/home/mutax/osbook/devenv/x86_64-elf/include",
-                "/home/mutax/workspace/MikanOS_X/Kernel"
+                "/home/mutax/workspace/MikanOS_X/Kernel",
+                "/home/mutax/osbook/devenv/x86_64-elf/include/freetype2"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
