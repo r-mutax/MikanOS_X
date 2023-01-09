@@ -34,16 +34,17 @@ class FrameID {
         explicit FrameID(size_t id) : id_{id} {}
         size_t ID() const { return id_; }
         void* Frame() const { return reinterpret_cast<void*>(id_ * kBytesPerFrame); }
+
     private:
         size_t id_;
 };
+
+static const FrameID kNullFrame{std::numeric_limits<size_t>::max()};
 
 struct MemoryStat{
     size_t allocated_frames;
     size_t total_frames;
 };
-
-static const FrameID kNullFrame{std::numeric_limits<size_t>::max()};
 
 /** @brief ビットマップ配列を用いてフレーム単位でメモリ管理するクラス．
  *
