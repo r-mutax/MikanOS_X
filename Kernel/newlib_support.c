@@ -57,3 +57,8 @@ int isatty(int fd) {
   errno = EBADF;
   return -1;
 }
+
+int open(const char* path, int flags) {
+  errno = ENOENT;
+  return -1;
+}
