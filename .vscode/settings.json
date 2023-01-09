@@ -76,6 +76,9 @@
         "thread": "cpp",
         "typeinfo": "cpp",
         "unordered_map": "cpp",
-        "memory_resource": "cpp"
+        "memory_resource": "cpp",
+        "csignal": "cpp",
+        "regex": "cpp",
+        "shared_mutex": "cpp"
     }
 }
