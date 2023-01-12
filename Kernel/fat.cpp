@@ -297,8 +297,6 @@ not_found:
     }
 
     size_t FileDescriptor::Write(const void* buf, size_t len){
-                printk("abc");
-
         auto num_cluster = [](size_t bytes){
             return (bytes + bytes_per_cluster - 1) / bytes_per_cluster;
         };
