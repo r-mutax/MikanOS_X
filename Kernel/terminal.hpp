@@ -30,9 +30,9 @@ class Terminal {
         unsigned int layer_id_;
         Task& task_;
 
-        uint64_t task_id_;
         bool show_window_;
         std::array<std::shared_ptr<FileDescriptor>, 3> files_;
+        int last_exit_code_{0};
 
         Vector2D<int> cursor_{0, 0};
         bool cursor_visible_{false};
@@ -44,7 +44,7 @@ class Terminal {
         void Scroll1();
 
         void ExecuteLine();
-        Error ExecuteFile(fat::DirectoryEntry& file_entry, char* command, char* first_arg);
+        WithError<int> ExecuteFile(fat::DirectoryEntry& file_entry, char* command, char* first_arg);
         void Print(char32_t c);
 
         std::deque<std::array<char, kLineMax>> cmd_history_{};
