@@ -134,7 +134,6 @@ Error WriteUnicode(PixelWriter& writer, Vector2D<int> pos,
         return err;
     }
 
-    printk("here\n");
     FT_Bitmap& bitmap = face->glyph->bitmap;
 
     const int baseline = (face->height + face->descender) *
@@ -148,15 +147,12 @@ Error WriteUnicode(PixelWriter& writer, Vector2D<int> pos,
             q -= bitmap.pitch * bitmap.rows;
         }
         for(int dx = 0; dx < bitmap.width; ++dx){
-            //printk("dx: %d, dy:%d\n", dx, dy);
             const bool b = q[dx >> 3] & (0x80 >> (dx & 0x7));
             if(b){
                 writer.Write(glyph_topleft + Vector2D<int>{dx, dy}, color);
             }
         }
     }
-    printk("here1\n");
-
     FT_Done_Face(face);
     return MAKE_ERROR(Error::kSuccess);
 }

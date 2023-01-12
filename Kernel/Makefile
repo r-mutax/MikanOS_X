@@ -24,6 +24,7 @@ OBJS = 	main.o \
 		terminal.o \
 		fat.o \
 		syscall.o \
+		file.o \
 		usb/memory.o \
 		usb/device.o \
 		usb/xhci/ring.o \
