@@ -11,7 +11,7 @@ extern "C" void main(int argc, char** argv){
     std::regex pattern{argv[1]};
 
     FILE* fp = stdin;
-    if(argc >= 3 && (fp == fopen(argv[2], "r")) == nullptr){
+    if(argc >= 3 && (fp = fopen(argv[2], "r")) == nullptr){
         fprintf(stderr, "failed to open: %s\n", argv[2]);
         exit(1);
     }
