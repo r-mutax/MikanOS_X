@@ -1,3 +1,9 @@
+/**
+ * @file segment.hpp
+ *
+ * セグメンテーション用のプログラムを集めたファイル．
+ */
+
 #pragma once
 
 #include <array>
