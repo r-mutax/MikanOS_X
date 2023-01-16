@@ -7,6 +7,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <map>
 
 #include "error.hpp"
 #include "message.hpp"
@@ -21,14 +22,14 @@ struct TaskContext {
   std::array<uint8_t, 512> fxsave_area; // offset 0xc0
 } __attribute__((packed));
 
+using TaskFunc = void (uint64_t, int64_t);
+
+class TaskManager;
+
 struct FileMapping {
     int fd;
     uint64_t vaddr_begin, vaddr_end;
 };
-
-using TaskFunc = void (uint64_t, int64_t);
-
-class TaskManager;
 
 class Task {
     public:
@@ -91,12 +92,16 @@ class TaskManager {
         Error Wakeup(uint64_t id, int level = -1);
         Error SendMessage(uint64_t id, const Message& msg);
         Task& CurrentTask();
+        void Finish(int exit_code);
+        WithError<int> WaitFinish(uint64_t task_id);
     private:
         std::vector<std::unique_ptr<Task>> tasks_{};
         uint64_t latest_id_{0};
         std::array<std::deque<Task*>, kMaxLevel + 1> running_{};
         int current_level_{kMaxLevel};
         bool level_changed_{false};
+        std::map<uint64_t, int> finish_tasks_{};
+        std::map<uint64_t, Task*> finish_waiter_{};
 
         void ChangeLevelRunning(Task* task, int level);
         Task* RotateCurrentRunQueue(bool current_sleep);

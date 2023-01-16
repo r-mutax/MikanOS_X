@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cstdint>
-#include <cstring>
 #include <cerrno>
 #include <cmath>
 #include <fcntl.h>
@@ -117,14 +116,18 @@ namespace syscall {
     }
 
     SYSCALL(WinWriteString) {
-        return DoWinFunc([](Window& win, int x, int y, uint32_t color, const char* s){
+        return DoWinFunc(
+           [](Window& win,
+              int x, int y, uint32_t color, const char* s){
             WriteString(*win.Writer(), {x, y}, s, ToColor(color));
             return Result { 0, 0 };
         }, arg1, arg2, arg3, arg4, reinterpret_cast<const char*>(arg5));
     }
 
     SYSCALL(WinFillRectangle){
-        return DoWinFunc([](Window& win, int x, int y, int w, int h, uint32_t color){
+        return DoWinFunc(
+            [](Window& win,
+               int x, int y, int w, int h, uint32_t color){
             FillRectangle(*win.Writer(), {x, y}, {w, h}, ToColor(color));
             return Result { 0, 0 };
         }, arg1, arg2, arg3, arg4, arg5, arg6);
@@ -274,16 +277,16 @@ namespace syscall {
                     break;
                 default:
                     Log(kInfo, "uncaught event type: %u\n", msg->type);
-                    break;
             }
         }
+
         return { i, 0 };
     }
 
     SYSCALL(CreateTimer){
         const unsigned int mode = arg1;
         const int timer_value = arg2;
-        if (timer_value < 0){
+        if (timer_value <= 0){
             return { 0, EINVAL };
         }
 
@@ -292,7 +295,7 @@ namespace syscall {
         __asm__("sti");
 
         unsigned long timeout = arg3 * kTimerFreq / 1000;
-        if (mode & 1){
+  if (mode & 1) { // relative
             timeout += timer_manager->CurrentTick();
         }
 
@@ -313,7 +316,17 @@ namespace syscall {
             task.Files().emplace_back();
             return num_files;
         }
+
+  std::pair<fat::DirectoryEntry*, int> CreateFile(const char* path) {
+    auto [ file, err ] = fat::CreateFile(path);
+    switch (err.Cause()) {
+    case Error::kIsDirectory: return { file, EISDIR };
+    case Error::kNoSuchEntry: return { file, ENOENT };
+    case Error::kNoEnoughMemory: return { file, ENOSPC };
+    default: return { file, 0 };
     }
+    }
+} // namespace
 
     SYSCALL(OpenFile){
         const char* path = reinterpret_cast<const char*>(arg1);
@@ -332,7 +345,7 @@ namespace syscall {
             if((flags & O_CREAT) == 0){
                 return {0, ENOENT};
             }
-            auto [new_file, err] = fat::CreateFile(path);
+            auto [new_file, err] = CreateFile(path);
             if(err){
                 return {0, err};
             }
@@ -361,7 +374,7 @@ namespace syscall {
         return {task.Files()[fd]->Read(buf, count), 0};
     }
 
-    SYSCALL(DemangPages) {
+    SYSCALL(DemandPages) {
         const size_t num_pages = arg1;
         // const int flags = arg2;
         __asm__("cli");
@@ -414,7 +427,7 @@ extern "C" std::array<SyscallFuncType*, 0x10> syscall_table{
     /* 0x0b */  syscall::CreateTimer,
     /* 0x0c */  syscall::OpenFile,
     /* 0x0d */  syscall::ReadFile,
-    /* 0x0e */  syscall::DemangPages,
+    /* 0x0e */  syscall::DemandPages,
     /* 0x0f */  syscall::MapFile,
 };
 

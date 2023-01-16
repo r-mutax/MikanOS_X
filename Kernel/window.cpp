@@ -4,7 +4,7 @@
 #include "font.hpp"
 
 namespace {
-    void DrawTextBox(PixelWriter& writer, Vector2D<int> pos, Vector2D<int> size,
+    void DrawTextbox(PixelWriter& writer, Vector2D<int> pos, Vector2D<int> size,
                         const PixelColor& background,
                         const PixelColor& border_light,
                         const PixelColor& border_dark){
@@ -160,12 +160,12 @@ void DrawWindow(PixelWriter& writer, const char* title){
 }
 
 void DrawTextbox(PixelWriter& writer, Vector2D<int> pos, Vector2D<int> size) {
-    DrawTextBox(writer, pos, size,
+    DrawTextbox(writer, pos, size,
                 ToColor(0xffffff), ToColor(0xc6c6c6), ToColor(0x848484));
 }
 
 void DrawTerminal(PixelWriter& writer, Vector2D<int> pos, Vector2D<int> size){
-    DrawTextBox(writer, pos, size,
+    DrawTextbox(writer, pos, size,
                 ToColor(0x000000), ToColor(0xc6c6c6), ToColor(0x848484));
 }
 
