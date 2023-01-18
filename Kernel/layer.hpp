@@ -77,6 +77,7 @@ extern std::map<unsigned int, uint64_t>* layer_task_map;
 
 void InitializeLayer();
 void ProcessLayerMessage(const Message& msg);
+Error CloseLayer(unsigned int layer_id);
 
 constexpr Message MakeLayerMessage(
     uint64_t task_id, unsigned int layer_id, LayerOperation op, const Rectangle<int> & area){

@@ -22,6 +22,28 @@ namespace {
     }
 }
 
+namespace {
+    const int kCloseButtonWidth = 16;
+    const int kCloseButtonHeight = 14;
+    const char close_button[kCloseButtonHeight][kCloseButtonWidth + 1] = {
+       //0123456789012345
+        "...............@",
+        ".:::::::::::::$@",
+        ".:::::::::::::$@",
+        ".:::@@::::@@::$@",
+        ".::::@@::@@:::$@",
+        ".:::::@@@@::::$@",
+        ".::::::@@:::::$@",
+        ".:::::@@@@::::$@",
+        ".::::@@::@@:::$@",
+        ".:::@@::::@@::$@",
+        ".:::::::::::::$@",
+        ".:::::::::::::$@",
+        ".$$$$$$$$$$$$$$@",
+        "@@@@@@@@@@@@@@@@",
+    };
+}
+
 Window::Window(int width, int height, PixelFormat shadow_format) : width_{width}, height_{height} {
     data_.resize(height);
     for(int y = 0; y < height; ++y){
@@ -97,6 +119,10 @@ void Window::Move(Vector2D<int> dst_pos, const Rectangle<int>& src){
     shadow_buffer_.Move(dst_pos, src);
 }
 
+WindowRegion Window::GetWindowRegion(Vector2D<int> pos){
+    return WindowRegion::kOther;
+}
+
 ToplevelWindow::ToplevelWindow(int width, int height, PixelFormat shadow_format, 
                                const std::string& title)
     : Window{width, height, shadow_format}, title_{title}{
@@ -117,27 +143,20 @@ Vector2D<int> ToplevelWindow::InnerSize() const {
     return Size() - kTopLeftMargin - kBottomRightMargin;
 }
 
-namespace {
-    const int kCloseButtonWidth = 16;
-    const int kCloseButtonHeight = 14;
-    const char close_button[kCloseButtonHeight][kCloseButtonWidth + 1] = {
-       //0123456789012345
-        "...............@",
-        ".:::::::::::::$@",
-        ".:::::::::::::$@",
-        ".:::@@::::@@::$@",
-        ".::::@@::@@:::$@",
-        ".:::::@@@@::::$@",
-        ".::::::@@:::::$@",
-        ".:::::@@@@::::$@",
-        ".::::@@::@@:::$@",
-        ".:::@@::::@@::$@",
-        ".:::::::::::::$@",
-        ".:::::::::::::$@",
-        ".$$$$$$$$$$$$$$@",
-        "@@@@@@@@@@@@@@@@",
-    };
+WindowRegion ToplevelWindow::GetWindowRegion(Vector2D<int> pos){
+    if (pos.x < 2 || Width() - 2 <= pos.x ||
+        pos.y < 2 || Height() - 2 <= pos.y){
+        return WindowRegion::kBorder;
+    } else if(pos.y < kTopLeftMargin.y) {
+        if(Width() - 5 - kCloseButtonWidth <= pos.x && pos.x < Width() - 5 &&
+            5 <= pos.y && pos.y < 5 + kCloseButtonHeight){
+            return WindowRegion::kCloseButton;
+        }
+        return WindowRegion::kTitleBar;
+    }
+    return WindowRegion::kOther;
 }
+
 void DrawWindow(PixelWriter& writer, const char* title){
     auto fill_rect = [&writer](Vector2D<int> pos, Vector2D<int> size, uint32_t c){
         FillRectangle(writer, pos, size, ToColor(c));

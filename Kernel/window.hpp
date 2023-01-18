@@ -6,6 +6,13 @@
 #include "graphics.hpp"
 #include "frame_buffer.hpp"
 
+enum class WindowRegion{
+    kTitleBar,
+    kCloseButton,
+    kBorder,
+    kOther,
+};
+
 class Window {
     public:
         class WindowWriter : public PixelWriter {
@@ -24,6 +31,7 @@ class Window {
         virtual ~Window() = default;
         Window(const Window& rhs) = delete;
         Window& operator=(const Window& rhs) = delete;
+        virtual WindowRegion GetWindowRegion(Vector2D<int> pos);
 
   void DrawTo(FrameBuffer& dst, Vector2D<int> pos, const Rectangle<int>& area);
         void SetTransparentColor(std::optional<PixelColor> c);
@@ -67,15 +75,14 @@ class ToplevelWindow : public Window {
                     window_.Write(pos + kTopLeftMargin, c);
                 }
                 virtual int Width() const override {
-      return window_.Width() - kTopLeftMargin.x - kBottomRightMargin.x; }
+                    return window_.Width() - kTopLeftMargin.x - kBottomRightMargin.x; }
                 virtual int Height() const override {
-      return window_.Height() - kTopLeftMargin.y - kBottomRightMargin.y; }
-
+                    return window_.Height() - kTopLeftMargin.y - kBottomRightMargin.y; }
             private:
                 ToplevelWindow& window_;
         };
 
-  ToplevelWindow(int width, int height, PixelFormat shadow_format,
+        ToplevelWindow(int width, int height, PixelFormat shadow_format,
                  const std::string& title);
 
         virtual void Activate() override;
@@ -83,6 +90,7 @@ class ToplevelWindow : public Window {
 
         InnerAreaWriter* InnerWriter() { return &inner_writer_; }
         Vector2D<int> InnerSize() const;
+        virtual WindowRegion GetWindowRegion(Vector2D<int> pos);
     
     private:
         std::string title_;
